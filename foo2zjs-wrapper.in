@@ -801,7 +801,7 @@ else
     esac
 
     case "$GSVER" in
-    9.*)
+    9.*|10.*|[1-9][0-9].*)
 	    cs=`colorspace $GAMMAFILE`
 	    if [ "$cs" = "CMYK" ]; then
 		COLORMODE=gs9
