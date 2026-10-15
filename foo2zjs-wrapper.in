@@ -938,10 +938,10 @@ fi
 GS="$GSBIN -q -dBATCH -dSAFER -dQUIET -dNOPAUSE"
 
 foo2zjs-pstops $PSTOPS_OPTS | \
-$PREFILTER \
-| ($GS $PAPERSIZE -g$DIM -r$RES $GSDEV $GSOPTS \
-    -sOutputFile="|cat 1>&3" $GAMMAFILE -_ >/dev/null) 3>&1 \
-| foo2zjs -r$RES -g$DIM -p$PAPER -m$MEDIA -n$COPIES -d$DUPLEX -s$SOURCE \
+$PREFILTER | \
+$GS $PAPERSIZE -g$DIM -r$RES $GSDEV $GSOPTS \
+    -sOutputFile=- $GAMMAFILE -_ | \
+foo2zjs -r$RES -g$DIM -p$PAPER -m$MEDIA -n$COPIES -d$DUPLEX -s$SOURCE \
 	    -z$MODEL $COLOR $CLIP_UL $CLIP_LR $CLIP_LOG $SAVETONER -T$DENSITY \
 	    -J "$LPJOB" -U "$USER" \
 	    $BC $AIB $COLOR2MONO $NOPLANES $EXTRAPAD -D$DEBUG
