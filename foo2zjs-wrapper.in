@@ -739,16 +739,7 @@ create_crd() {
 		    << /UseWTS false >> setuserparams
 		EOF
 	    fi
-	    cat >> $ICCTMP.usecie.ps <<-EOF
-		<<
-		    /AccurateScreens true
-		    /HalftoneType 1
-		    /HalftoneName (Round Dot Screen) cvn
-		    /SpotFunction { 180 mul cos exch 180 mul cos add 2 div}
-		    /Frequency 137
-		    /Angle 37
-		>> sethalftone
-		EOF
+
 	fi
 	cat > $ICCTMP.selcrd.ps <<-EOF
 		/Current /ColorRendering findresource setcolorrendering
@@ -903,9 +894,9 @@ gs9)
 esac
 
 if [ "$COLOR" != "" -a "$QUALITY" = wts ]; then
-    PSTOPS_OPTS="$PSTOPS_OPTS -w"
+    PSTOPS_OPTS="$PSTOPS_OPTS -9 -w"
 elif [ "$COLOR" != "" -a "$QUALITY" = as ]; then
-    PSTOPS_OPTS="$PSTOPS_OPTS -a"
+    PSTOPS_OPTS="$PSTOPS_OPTS -9 -a"
 fi
 
 if [ "" != "$COLOR" ]; then
