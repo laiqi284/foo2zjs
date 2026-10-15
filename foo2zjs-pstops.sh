@@ -116,37 +116,37 @@ else
 	    /HalftoneType 5\
 	    /Cyan <<\
 		/HalftoneType 1\
-		/AccurateScreens true\
-		/Frequency 150\
-		/Angle 105\
+		/AccurateScreens false\
+		/Frequency 145.521186\
+		/Angle 104.036243\
 		/SpotFunction /SpotDot load\
 	    >>\
 	    /Magenta <<\
 		/HalftoneType 1\
-		/AccurateScreens true\
-		/Frequency 150\
-		/Angle 165\
+		/AccurateScreens false\
+		/Frequency 145.521186\
+		/Angle 165.963757\
 		/SpotFunction /SpotDot load\
 	    >>\
 	    /Yellow <<\
 		/HalftoneType 1\
-		/AccurateScreens true\
-		/Frequency 150\
-		/Angle 30\
+		/AccurateScreens false\
+		/Frequency 150.0\
+		/Angle 0\
 		/SpotFunction /SpotDot load\
 	    >>\
 	    /Black <<\
 		/HalftoneType 1\
-		/AccurateScreens true\
-		/Frequency 150\
+		/AccurateScreens false\
+		/Frequency 141.421356\
 		/Angle 45\
 		/SpotFunction /SpotDot load\
 	    >>\
 	    /Default <<\
 		/HalftoneType 1\
-		/AccurateScreens true\
-		/Frequency 150\
-		/Angle 37\
+		/AccurateScreens false\
+		/Frequency 141.421356\
+		/Angle 45\
 		/SpotFunction /SpotDot load\
 	    >>\
 	>> /Default exch /Halftone defineresource sethalftone
