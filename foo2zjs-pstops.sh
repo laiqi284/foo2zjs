@@ -110,7 +110,8 @@ if [ "$GSVER" = "old" ]; then
         >> sethalftone
     '
 else
-    ht='\
+    # Standard Rosette (~145 LPI, Area=17 pixels, Balanced tone and smoothness)
+    ht_145='\
 	/SpotDot { 180 mul cos exch 180 mul cos add 2 div } def\
 	<<\
 	    /HalftoneType 5\
@@ -151,11 +152,60 @@ else
 	    >>\
 	>> /Default exch /Halftone defineresource sethalftone
     '
+
+    # Ultra-Fine Rosette (~190 LPI, Area=10 pixels, ~40% smaller rosette flowers)
+    ht_190='\
+	/SpotDot { 180 mul cos exch 180 mul cos add 2 div } def\
+	<<\
+	    /HalftoneType 5\
+	    /Cyan <<\
+		/HalftoneType 1\
+		/AccurateScreens false\
+		/Frequency 189.737\
+		/Angle 108.435\
+		/SpotFunction /SpotDot load\
+	    >>\
+	    /Magenta <<\
+		/HalftoneType 1\
+		/AccurateScreens false\
+		/Frequency 189.737\
+		/Angle 161.565\
+		/SpotFunction /SpotDot load\
+	    >>\
+	    /Yellow <<\
+		/HalftoneType 1\
+		/AccurateScreens false\
+		/Frequency 200.0\
+		/Angle 0\
+		/SpotFunction /SpotDot load\
+	    >>\
+	    /Black <<\
+		/HalftoneType 1\
+		/AccurateScreens false\
+		/Frequency 169.706\
+		/Angle 45\
+		/SpotFunction /SpotDot load\
+	    >>\
+	    /Default <<\
+		/HalftoneType 1\
+		/AccurateScreens false\
+		/Frequency 169.706\
+		/Angle 45\
+		/SpotFunction /SpotDot load\
+	    >>\
+	>> /Default exch /Halftone defineresource sethalftone
+    '
+
+    if [ $WTS = 1 ]; then
+	ht="$ht_190"
+    else
+	ht="$ht_145"
+    fi
 fi
 
 if [ $WTS = 1 ]; then
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	<< /UseWTS true >> setuserparams \
+	<< /UseWTS false >> setuserparams \
 	$ht
 	"
 elif [ $ACCURATE = 1 ]; then
