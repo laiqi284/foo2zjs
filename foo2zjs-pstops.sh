@@ -112,7 +112,7 @@ if [ "$GSVER" = "old" ]; then
 else
     # Standard Rosette (~145 LPI, Area=17 pixels, Balanced tone and smoothness)
     ht_145='\
-	/SpotDot { 180 mul cos exch 180 mul cos add 2 div } def\
+	/SpotDot { dup mul exch dup mul add 1 exch sub } def\
 	<<\
 	    /HalftoneType 5\
 	    /Cyan <<\
@@ -155,7 +155,7 @@ else
 
     # Ultra-Fine Rosette (~190 LPI, Area=10 pixels, ~40% smaller rosette flowers)
     ht_190='\
-	/SpotDot { 180 mul cos exch 180 mul cos add 2 div } def\
+	/SpotDot { dup mul exch dup mul add 1 exch sub } def\
 	<<\
 	    /HalftoneType 5\
 	    /Cyan <<\
