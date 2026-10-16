@@ -135,9 +135,9 @@ def build_profile(src_icm_path, out_icc_path, grid_points=33):
             m = 1.0 - g
             y = 1.0 - b
 
-            # Smart GCR (Gray Component Replacement)
+            # Smart Clean GCR & 100% Under Color Removal (UCR)
             k_min = min(c, m, y)
-            k_start = 0.15 # preserve clean highlights/skin tones
+            k_start = 0.12 # preserve clean highlights and skin tones without black specks
             if k_min <= k_start:
                 K = 0.0
                 C = c
@@ -145,11 +145,14 @@ def build_profile(src_icm_path, out_icc_path, grid_points=33):
                 Y = y
             else:
                 t = (k_min - k_start) / (1.0 - k_start)
-                K = t ** 1.2
-                # Under color removal
-                C = max(0.0, c - K * k_min)
-                M = max(0.0, m - K * k_min)
-                Y = max(0.0, y - K * k_min)
+                # Smooth GCR fraction ramping from 0.70 in midtones to 1.0 at pure black
+                gcr_frac = 0.70 + 0.30 * (t ** 1.5)
+                K = min(1.0, max(0.0, k_min * gcr_frac))
+
+                # Clean 100% UCR: subtract exactly the neutral component replaced by K
+                C = max(0.0, c - K)
+                M = max(0.0, m - K)
+                Y = max(0.0, y - K)
 
             # Clamp and convert to 16-bit
             out_vals[0] = int(round(min(1.0, max(0.0, C)) * 65535.0))
