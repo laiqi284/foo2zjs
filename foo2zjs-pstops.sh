@@ -204,7 +204,7 @@ else
 	<< /UseWTS false >> setuserparams\
 	(stocht.ps) runlibfile\
 	<< /HalftoneMode 1 >> setuserparams\
-	{ 1.5 exp } settransfer\
+	{ 1.8 exp } { 1.8 exp } { 1.8 exp } { 1.8 exp } setcolortransfer\
     '
 
     if [ $STOCH = 1 ]; then
