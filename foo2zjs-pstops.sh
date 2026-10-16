@@ -199,12 +199,28 @@ else
 	>> /Default exch /Halftone defineresource sethalftone
     '
 
-    # Stochastic FM Screening (No Rosette / Blue-Noise Dither, Calibrated Tone)
+    # Stochastic FM Screening (Pure 1x1 Micro-Dot FM, Electrophotography Calibrated)
     ht_stoch='\
 	<< /UseWTS false >> setuserparams\
 	(stocht.ps) runlibfile\
-	<< /HalftoneMode 1 >> setuserparams\
-	{ 1.8 exp } { 1.8 exp } { 1.8 exp } { 1.8 exp } setcolortransfer\
+	/lut 256 string def\
+	0 1 255 {\
+	    dup 254 div 0.38 exp 254 mul cvi\
+	    lut 3 1 roll put\
+	} for\
+	[ /Cyan /Magenta /Yellow /Black ] {\
+	    /StochasticDefault /Halftone findresource exch get /Thresholds get\
+	    0 1 2 index length 1 sub {\
+		2 copy get lut exch get\
+		2 index 3 1 roll put\
+	    } for\
+	    pop\
+	} forall\
+	/StochasticDefault /Halftone findresource\
+	/Default exch /Halftone defineresource\
+	sethalftone\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
     if [ $STOCH = 1 ]; then
