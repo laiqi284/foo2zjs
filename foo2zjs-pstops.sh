@@ -185,25 +185,26 @@ else
 	    /Black <<\
 		/HalftoneType 1\
 		/AccurateScreens false\
-		/Frequency 169.706\
+		/Frequency 212.132\
 		/Angle 45\
 		/SpotFunction /SpotDot load\
 	    >>\
 	    /Default <<\
 		/HalftoneType 1\
 		/AccurateScreens false\
-		/Frequency 169.706\
+		/Frequency 212.132\
 		/Angle 45\
 		/SpotFunction /SpotDot load\
 	    >>\
 	>> /Default exch /Halftone defineresource sethalftone
     '
 
-    # Stochastic FM Screening (No Rosette / Blue-Noise Dither)
+    # Stochastic FM Screening (No Rosette / Blue-Noise Dither, Calibrated Tone)
     ht_stoch='\
 	<< /UseWTS false >> setuserparams\
 	(stocht.ps) runlibfile\
 	<< /HalftoneMode 1 >> setuserparams\
+	{ 1.5 exp } settransfer\
     '
 
     if [ $STOCH = 1 ]; then

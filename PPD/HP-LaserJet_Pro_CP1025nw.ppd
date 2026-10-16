@@ -26,7 +26,7 @@
 *FormatVersion:	"4.3"
 *FileVersion:	"1.1"
 *LanguageVersion: English 
-*LanguageEncoding: ISOLatin1
+*LanguageEncoding: UTF-8
 *PCFileName:	"FOO2ZJS-.PPD"
 *Manufacturer:	"HP"
 *Product:	"(HP LaserJet CP1025nw)"
@@ -416,20 +416,14 @@
 
 *OpenGroup: Adjustment/Adjustment
 
-*OpenUI *halftone/Halftone Algorithm: PickOne
+*OpenUI *halftone/Halftone Screen (梅花纹加网): PickOne
 *FoomaticRIPOption halftone: enum CmdLine A
 *OrderDependency: 110 AnySetup *halftone
-*Defaulthalftone: default
-*halftone default/Default: "%% FoomaticRIPOptionSetting: halftone=default"
-*FoomaticRIPOptionSetting halftone=default: "  "
-*halftone as/Accurate Screens (~145 LPI AM Rosette): "%% FoomaticRIPOptionSetting: halftone=as"
+*Defaulthalftone: as
+*halftone as/145 LPI (标准梅花纹 ~6点/mm): "%% FoomaticRIPOptionSetting: halftone=as"
 *FoomaticRIPOptionSetting halftone=as: " -qas  "
-*halftone standard/Standard: "%% FoomaticRIPOptionSetting: halftone=standard"
-*FoomaticRIPOptionSetting halftone=standard: " -q1  "
-*halftone wts/Well Tempered Screens (~190 LPI AM Fine): "%% FoomaticRIPOptionSetting: halftone=wts"
+*halftone wts/逼近 10 点/mm (超细梅花纹 ~212 LPI): "%% FoomaticRIPOptionSetting: halftone=wts"
 *FoomaticRIPOptionSetting halftone=wts: " -qwts  "
-*halftone stoch/FM Stochastic Screening (No Rosette / FM): "%% FoomaticRIPOptionSetting: halftone=stoch"
-*FoomaticRIPOptionSetting halftone=stoch: " -qstoch  "
 *CloseUI: *halftone
 
 *OpenUI *Density/Print Density: PickOne
