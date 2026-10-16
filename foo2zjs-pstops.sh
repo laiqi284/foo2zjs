@@ -23,7 +23,8 @@ OPTIONS
     -c		CIEColor
     -n		Neuter CUPS cupsPSLevel2
     -w		Well Tempered Screens code
-    -s		Stochastic / FM Halftone code
+    -s		Stochastic FM Halftone code (1x1 Micro-Dots)
+    -S		Stochastic FM Halftone code (2x2 Clustered Dots)
     -D lvl	Debug level
 EOF
 
@@ -63,8 +64,9 @@ CIECOLOR=0
 NIXCUPS=0
 WTS=0
 STOCH=0
+STOCH2=0
 GSVER=old
-while getopts "9ach:nwsrD:Vh?" opt
+while getopts "9ach:nwsSrD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -74,6 +76,7 @@ do
 	n)	NIXCUPS=1;;
 	r)	ROTATE90=1;;
 	s)	STOCH=1;;
+	S)	STOCH2=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
 	V)	echo "$VERSION"; exit 0;;
@@ -199,8 +202,8 @@ else
 	>> /Default exch /Halftone defineresource sethalftone
     '
 
-    # Stochastic FM Screening (Pure 1x1 Void-and-Cluster Blue Noise FM, Independent from CalComp)
-    ht_stoch='\
+    # Stochastic FM Screening (Pure 1x1 Void-and-Cluster Blue Noise FM, Micro-Dots)
+    ht_stoch1='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch.ps) run } stopped {\
 	    pop { (/tmp/foo2zjs_stoch.ps) run } stopped {\
@@ -211,8 +214,22 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    if [ $STOCH = 1 ]; then
-	ht="$ht_stoch"
+    # Stochastic FM Screening (2x2 Clustered FM, Maximum Toner Opacity & Vivid Color)
+    ht_stoch2='\
+	<< /UseWTS false >> setuserparams\
+	{ (/usr/share/foo2zjs/crd/stoch2.ps) run } stopped {\
+	    pop { (/tmp/foo2zjs_stoch2.ps) run } stopped {\
+		pop (stoch2.ps) runlibfile\
+	    } if\
+	} if\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
+    '
+
+    if [ $STOCH2 = 1 ]; then
+	ht="$ht_stoch2"
+    elif [ $STOCH = 1 ]; then
+	ht="$ht_stoch1"
     elif [ $WTS = 1 ]; then
 	ht="$ht_190"
     else
@@ -220,7 +237,17 @@ else
     fi
 fi
 
-if [ $STOCH = 1 ]; then
+if [ $STOCH2 = 1 ]; then
+    if [ ! -r /usr/share/foo2zjs/crd/stoch2.ps ] && [ ! -r /tmp/foo2zjs_stoch2.ps ]; then
+	PROGDIR=`dirname "$PROGNAME"`
+	if [ -r "$PROGDIR/crd/zjs/stoch2.ps" ]; then
+	    cp "$PROGDIR/crd/zjs/stoch2.ps" /tmp/foo2zjs_stoch2.ps 2>/dev/null
+	fi
+    fi
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $STOCH = 1 ]; then
     if [ ! -r /usr/share/foo2zjs/crd/stoch.ps ] && [ ! -r /tmp/foo2zjs_stoch.ps ]; then
 	PROGDIR=`dirname "$PROGNAME"`
 	if [ -r "$PROGDIR/crd/zjs/stoch.ps" ]; then

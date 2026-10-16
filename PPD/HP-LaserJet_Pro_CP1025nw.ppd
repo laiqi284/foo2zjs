@@ -424,8 +424,10 @@
 *FoomaticRIPOptionSetting halftone=as: " -qas  "
 *halftone wts/Well Tempered Screens (~212 LPI): "%% FoomaticRIPOptionSetting: halftone=wts"
 *FoomaticRIPOptionSetting halftone=wts: " -qwts  "
-*halftone stoch/Stochastic Screening (FM): "%% FoomaticRIPOptionSetting: halftone=stoch"
+*halftone stoch/Stochastic Screening (1x1 Micro-Dots): "%% FoomaticRIPOptionSetting: halftone=stoch"
 *FoomaticRIPOptionSetting halftone=stoch: " -qstoch  "
+*halftone stoch2/Stochastic Screening (2x2 Clustered, Vivid Color): "%% FoomaticRIPOptionSetting: halftone=stoch2"
+*FoomaticRIPOptionSetting halftone=stoch2: " -qstoch2  "
 *CloseUI: *halftone
 
 *OpenUI *Density/Print Density: PickOne
