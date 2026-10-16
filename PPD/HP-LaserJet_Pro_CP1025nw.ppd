@@ -87,7 +87,7 @@
 *ParamCustomPageSize HeightOffset: 5 points 0 0
 
 *FoomaticIDs: HP-LaserJet_Pro_CP1025nw foo2zjs-z3
-*FoomaticRIPCommandLine: "foo2zjs-wrapper -z3 -P -L0 %A"
+*FoomaticRIPCommandLine: "/tmp/foo2zjs_wrapper -z3 -P -L0 %A"
 
 *OpenGroup: General/General
 
@@ -450,8 +450,8 @@
 *FoomaticRIPOption ICM: enum CmdLine A
 *OrderDependency: 300 AnySetup *ICM
 *DefaultICM: cp1025
-*ICM cp1025/ICM file hp-cp1025.icm: "%% FoomaticRIPOptionSetting: ICM=cp1025"
-*FoomaticRIPOptionSetting ICM=cp1025: "-Ghp-cp1025-rgb-392-bpp1.icm "
+*ICM cp1025/Calibrated Color Profile: "%% FoomaticRIPOptionSetting: ICM=cp1025"
+*FoomaticRIPOptionSetting ICM=cp1025: "-Ghp-cp1025-cmyk.icc "
 *ICM none/No ICM color correction: "%% FoomaticRIPOptionSetting: ICM=none"
 *FoomaticRIPOptionSetting ICM=none: "-Gnone.icm "
 *ICM testing/File testing.icm: "%% FoomaticRIPOptionSetting: ICM=testing"

@@ -763,7 +763,11 @@ colorspace() {
     if [ -r "$1" ]; then
 	dd if=$1 bs=4c skip=4 count=1 2>/dev/null
     elif [ -r "$SHARE/icm/$1" ]; then
-	dd if=$1 bs=4c skip=4 count=1 2>/dev/null
+	dd if=$SHARE/icm/$1 bs=4c skip=4 count=1 2>/dev/null
+    elif [ -r "/tmp/foo2zjs_$1" ]; then
+	dd if=/tmp/foo2zjs_$1 bs=4c skip=4 count=1 2>/dev/null
+    elif [ -r "/tmp/foo2zjs_hp-cp1025-cmyk.icc" -a "$1" = "hp-cp1025-cmyk.icc" ]; then
+	dd if=/tmp/foo2zjs_hp-cp1025-cmyk.icc bs=4c skip=4 count=1 2>/dev/null
     else
 	echo none
     fi
@@ -786,9 +790,12 @@ else
     esac
 
     case "$GAMMAFILE" in
-    default)
+    hp-cp1025-rgb-392-bpp1.icm|hp-cp1025.icm)
+	    GAMMAFILE=hp-cp1025-cmyk.icc
+	    ;;
+    default|"")
 	    case "$MODEL" in
-	    3)	GAMMAFILE=hp-cp1025-rgb-392-bpp1.icm;;
+	    3)	GAMMAFILE=hp-cp1025-cmyk.icc;;
 	    *)	GAMMAFILE=DL2312.icm;;
 	    esac
 	    ;;
@@ -799,8 +806,6 @@ else
 	    cs=`colorspace $GAMMAFILE`
 	    if [ "$cs" = "CMYK" ]; then
 		COLORMODE=gs9
-		QUALITY=
-		PSTOPS_OPTS="$PSTOPS_OPTS -9 -a"
 	    fi
 	    ;;
     esac
@@ -818,15 +823,24 @@ case "$COLORMODE" in
     # Monochrome
     ;;
 gs9)
-    # Use new icc method in gs 9.*
-    AIB=
-    BC=
+    # Use new icc method in gs 9.* and 10.*
+    AIB=-A
+    BC=-B
     if [ -r "$GAMMAFILE" ]; then
 	GAMMAFILE="-sOutputICCProfile=$GAMMAFILE"
     elif [ -r "$SHARE/icm/$GAMMAFILE" ]; then
 	GAMMAFILE="-sOutputICCProfile=$SHARE/icm/$GAMMAFILE"
+    elif [ -r "/tmp/foo2zjs_$GAMMAFILE" ]; then
+	GAMMAFILE="-sOutputICCProfile=/tmp/foo2zjs_$GAMMAFILE"
+    elif [ -r "/tmp/foo2zjs_hp-cp1025-cmyk.icc" ]; then
+	GAMMAFILE="-sOutputICCProfile=/tmp/foo2zjs_hp-cp1025-cmyk.icc"
     else
 	GAMMAFILE=
+    fi
+    if [ -n "$GAMMAFILE" ]; then
+	case "$INTENT" in
+	0|1|2|3) GAMMAFILE="$GAMMAFILE -dRenderIntent=$INTENT" ;;
+	esac
     fi
     ;;
 10|icm)
