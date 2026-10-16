@@ -199,26 +199,14 @@ else
 	>> /Default exch /Halftone defineresource sethalftone
     '
 
-    # Stochastic FM Screening (Pure 1x1 Micro-Dot FM, Electrophotography Calibrated)
+    # Stochastic FM Screening (Pure 1x1 Void-and-Cluster Blue Noise FM, Independent from CalComp)
     ht_stoch='\
 	<< /UseWTS false >> setuserparams\
-	(stocht.ps) runlibfile\
-	/lut 256 string def\
-	0 1 255 {\
-	    dup 254 div 0.45 exp 254 mul cvi\
-	    lut 3 1 roll put\
-	} for\
-	[ /Cyan /Magenta /Yellow /Black ] {\
-	    /StochasticDefault /Halftone findresource exch get /Thresholds get\
-	    0 1 2 index length 1 sub {\
-		2 copy get lut exch get\
-		2 index 3 1 roll put\
-	    } for\
-	    pop\
-	} forall\
-	/StochasticDefault /Halftone findresource\
-	/Default exch /Halftone defineresource\
-	sethalftone\
+	{ (/usr/share/foo2zjs/crd/stoch.ps) run } stopped {\
+	    pop { (/tmp/foo2zjs_stoch.ps) run } stopped {\
+		pop (stocht.ps) runlibfile\
+	    } if\
+	} if\
 	userdict /settransfer { pop } bind put\
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
@@ -233,6 +221,12 @@ else
 fi
 
 if [ $STOCH = 1 ]; then
+    if [ ! -r /usr/share/foo2zjs/crd/stoch.ps ] && [ ! -r /tmp/foo2zjs_stoch.ps ]; then
+	PROGDIR=`dirname "$PROGNAME"`
+	if [ -r "$PROGDIR/crd/zjs/stoch.ps" ]; then
+	    cp "$PROGDIR/crd/zjs/stoch.ps" /tmp/foo2zjs_stoch.ps 2>/dev/null
+	fi
+    fi
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
