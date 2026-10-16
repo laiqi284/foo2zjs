@@ -422,12 +422,14 @@
 *Defaulthalftone: default
 *halftone default/Default: "%% FoomaticRIPOptionSetting: halftone=default"
 *FoomaticRIPOptionSetting halftone=default: "  "
-*halftone as/Accurate Screens (better): "%% FoomaticRIPOptionSetting: halftone=as"
+*halftone as/Accurate Screens (~145 LPI AM Rosette): "%% FoomaticRIPOptionSetting: halftone=as"
 *FoomaticRIPOptionSetting halftone=as: " -qas  "
 *halftone standard/Standard: "%% FoomaticRIPOptionSetting: halftone=standard"
 *FoomaticRIPOptionSetting halftone=standard: " -q1  "
-*halftone wts/Well Tempered Screens (best): "%% FoomaticRIPOptionSetting: halftone=wts"
+*halftone wts/Well Tempered Screens (~190 LPI AM Fine): "%% FoomaticRIPOptionSetting: halftone=wts"
 *FoomaticRIPOptionSetting halftone=wts: " -qwts  "
+*halftone stoch/FM Stochastic Screening (No Rosette / FM): "%% FoomaticRIPOptionSetting: halftone=stoch"
+*FoomaticRIPOptionSetting halftone=stoch: " -qstoch  "
 *CloseUI: *halftone
 
 *OpenUI *Density/Print Density: PickOne

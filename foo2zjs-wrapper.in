@@ -729,7 +729,7 @@ create_crd() {
 		%!PS-Adobe-3.0
 		<</UseCIEColor true>>setpagedevice
 	EOF
-	if [ "$QUALITY" = wts -o "$QUALITY" = as ]; then
+	if [ "$QUALITY" = wts -o "$QUALITY" = as -o "$QUALITY" = stoch -o "$QUALITY" = fm ]; then
 	    if [ "$QUALITY" = wts ]; then
 		cat >> $ICCTMP.usecie.ps <<-EOF
 		    << /UseWTS true >> setuserparams
@@ -897,6 +897,8 @@ if [ "$COLOR" != "" -a "$QUALITY" = wts ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -w"
 elif [ "$COLOR" != "" -a "$QUALITY" = as ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -a"
+elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch -o "$QUALITY" = fm \) ]; then
+    PSTOPS_OPTS="$PSTOPS_OPTS -9 -s"
 fi
 
 if [ "" != "$COLOR" ]; then

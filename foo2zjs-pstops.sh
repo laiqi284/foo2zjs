@@ -23,6 +23,7 @@ OPTIONS
     -c		CIEColor
     -n		Neuter CUPS cupsPSLevel2
     -w		Well Tempered Screens code
+    -s		Stochastic / FM Halftone code
     -D lvl	Debug level
 EOF
 
@@ -61,8 +62,9 @@ ACCURATE=0
 CIECOLOR=0
 NIXCUPS=0
 WTS=0
+STOCH=0
 GSVER=old
-while getopts "9ach:nwrD:Vh?" opt
+while getopts "9ach:nwsrD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -71,6 +73,7 @@ do
 	h)	YDIMpoints="$OPTARG";;
 	n)	NIXCUPS=1;;
 	r)	ROTATE90=1;;
+	s)	STOCH=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
 	V)	echo "$VERSION"; exit 0;;
@@ -196,14 +199,27 @@ else
 	>> /Default exch /Halftone defineresource sethalftone
     '
 
-    if [ $WTS = 1 ]; then
+    # Stochastic FM Screening (No Rosette / Blue-Noise Dither)
+    ht_stoch='\
+	<< /UseWTS false >> setuserparams\
+	(stocht.ps) runlibfile\
+	<< /HalftoneMode 1 >> setuserparams\
+    '
+
+    if [ $STOCH = 1 ]; then
+	ht="$ht_stoch"
+    elif [ $WTS = 1 ]; then
 	ht="$ht_190"
     else
 	ht="$ht_145"
     fi
 fi
 
-if [ $WTS = 1 ]; then
+if [ $STOCH = 1 ]; then
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $WTS = 1 ]; then
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	<< /UseWTS false >> setuserparams \
 	$ht
