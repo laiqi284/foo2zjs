@@ -205,7 +205,7 @@ else
 	(stocht.ps) runlibfile\
 	/lut 256 string def\
 	0 1 255 {\
-	    dup 254 div 0.38 exp 254 mul cvi\
+	    dup 254 div 0.45 exp 254 mul cvi\
 	    lut 3 1 roll put\
 	} for\
 	[ /Cyan /Magenta /Yellow /Black ] {\
