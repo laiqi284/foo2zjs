@@ -24,7 +24,7 @@ OPTIONS
     -n		Neuter CUPS cupsPSLevel2
     -w		Well Tempered Screens code
     -s		Stochastic FM Halftone code (1x1 Micro-Dots)
-    -S		Stochastic FM Halftone code (Organic Green Noise, Vivid Color)
+    -S		Stochastic FM Halftone code (2x2 Clustered Dots, Vivid Color)
     -D lvl	Debug level
 EOF
 
@@ -214,7 +214,7 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    # Stochastic FM Screening (Organic Green Noise, Vivid Color & No Worm Artifacts)
+    # Stochastic FM Screening (2x2 Clustered FM, Maximum Toner Opacity & Vivid Color)
     ht_stoch2='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch2.ps) run } stopped {\
