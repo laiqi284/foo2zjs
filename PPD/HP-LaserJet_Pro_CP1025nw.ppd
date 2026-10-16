@@ -430,6 +430,22 @@
 *FoomaticRIPOptionSetting halftone=wts: " -qwts  "
 *CloseUI: *halftone
 
+*OpenUI *Density/Print Density: PickOne
+*FoomaticRIPOption Density: enum CmdLine A
+*OrderDependency: 150 AnySetup *Density
+*DefaultDensity: Density3
+*Density Density1/Extra Light (1): "%% FoomaticRIPOptionSetting: Density=Density1"
+*FoomaticRIPOptionSetting Density=Density1: "-T1 "
+*Density Density2/Light (2): "%% FoomaticRIPOptionSetting: Density=Density2"
+*FoomaticRIPOptionSetting Density=Density2: "-T2 "
+*Density Density3/Medium (3): "%% FoomaticRIPOptionSetting: Density=Density3"
+*FoomaticRIPOptionSetting Density=Density3: "-T3 "
+*Density Density4/Dark (4): "%% FoomaticRIPOptionSetting: Density=Density4"
+*FoomaticRIPOptionSetting Density=Density4: "-T4 "
+*Density Density5/Extra Dark (5): "%% FoomaticRIPOptionSetting: Density=Density5"
+*FoomaticRIPOptionSetting Density=Density5: "-T5 "
+*CloseUI: *Density
+
 *OpenUI *ICM/ICM Color Profile: PickOne
 *FoomaticRIPOption ICM: enum CmdLine A
 *OrderDependency: 300 AnySetup *ICM
