@@ -324,7 +324,7 @@ as)
 wts)
     GSOPTS="-dCOLORSCREEN -dMaxBitmap=500000000 $GSOPTS"
     ;;
-stoch|stoch1|1x1|stoch2|2x2|fm)
+stoch|stoch1|1x1|stoch2|2x2|fm|stoch12|1x2)
     GSOPTS="-dCOLORSCREEN -dMaxBitmap=500000000 $GSOPTS"
     ;;
 esac
@@ -732,7 +732,7 @@ create_crd() {
 		%!PS-Adobe-3.0
 		<</UseCIEColor true>>setpagedevice
 	EOF
-	if [ "$QUALITY" = wts -o "$QUALITY" = as -o "$QUALITY" = stoch -o "$QUALITY" = stoch1 -o "$QUALITY" = stoch2 -o "$QUALITY" = 1x1 -o "$QUALITY" = 2x2 -o "$QUALITY" = fm ]; then
+	if [ "$QUALITY" = wts -o "$QUALITY" = as -o "$QUALITY" = stoch -o "$QUALITY" = stoch1 -o "$QUALITY" = stoch2 -o "$QUALITY" = 1x1 -o "$QUALITY" = 2x2 -o "$QUALITY" = fm -o "$QUALITY" = stoch12 -o "$QUALITY" = 1x2 ]; then
 	    if [ "$QUALITY" = wts ]; then
 		cat >> $ICCTMP.usecie.ps <<-EOF
 		    << /UseWTS true >> setuserparams
@@ -826,17 +826,24 @@ gs9)
     # Use new icc method in gs 9.* and 10.*
     AIB=-A
     BC=-B
-    if [ -r "$GAMMAFILE" ]; then
-	GAMMAFILE="-sOutputICCProfile=$GAMMAFILE"
-    elif [ -r "$SHARE/icm/$GAMMAFILE" ]; then
-	GAMMAFILE="-sOutputICCProfile=$SHARE/icm/$GAMMAFILE"
-    elif [ -r "/tmp/foo2zjs_$GAMMAFILE" ]; then
-	GAMMAFILE="-sOutputICCProfile=/tmp/foo2zjs_$GAMMAFILE"
-    elif [ -r "/tmp/foo2zjs_hp-cp1025-cmyk.icc" ]; then
-	GAMMAFILE="-sOutputICCProfile=/tmp/foo2zjs_hp-cp1025-cmyk.icc"
-    else
+    case "$GAMMAFILE" in
+    none|none.icm|none.icc)
 	GAMMAFILE=
-    fi
+	;;
+    *)
+	if [ -r "$GAMMAFILE" ]; then
+	    GAMMAFILE="-sOutputICCProfile=$GAMMAFILE"
+	elif [ -r "$SHARE/icm/$GAMMAFILE" ]; then
+	    GAMMAFILE="-sOutputICCProfile=$SHARE/icm/$GAMMAFILE"
+	elif [ -r "/tmp/foo2zjs_$GAMMAFILE" ]; then
+	    GAMMAFILE="-sOutputICCProfile=/tmp/foo2zjs_$GAMMAFILE"
+	elif [ -r "/tmp/foo2zjs_hp-cp1025-cmyk.icc" ]; then
+	    GAMMAFILE="-sOutputICCProfile=/tmp/foo2zjs_hp-cp1025-cmyk.icc"
+	else
+	    GAMMAFILE=
+	fi
+	;;
+    esac
     if [ -n "$GAMMAFILE" ]; then
 	case "$INTENT" in
 	0|1|2|3) GAMMAFILE="$GAMMAFILE -dRenderIntent=$INTENT" ;;
@@ -914,6 +921,8 @@ if [ "$COLOR" != "" -a "$QUALITY" = wts ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -w"
 elif [ "$COLOR" != "" -a "$QUALITY" = as ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -a"
+elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch12 -o "$QUALITY" = 1x2 \) ]; then
+    PSTOPS_OPTS="$PSTOPS_OPTS -9 -m"
 elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch -o "$QUALITY" = stoch1 -o "$QUALITY" = 1x1 \) ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -s"
 elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 -o "$QUALITY" = fm \) ]; then
@@ -949,7 +958,12 @@ fi
 #
 GS="$GSBIN -q -dBATCH -dSAFER -dQUIET -dNOPAUSE"
 
-foo2zjs-pstops $PSTOPS_OPTS | \
+PSTOPSBIN=foo2zjs-pstops
+if [ -x /tmp/foo2zjs-pstops ]; then
+    PSTOPSBIN=/tmp/foo2zjs-pstops
+fi
+
+$PSTOPSBIN $PSTOPS_OPTS | \
 $PREFILTER | \
 $GS $PAPERSIZE -g$DIM -r$RES $GSDEV $GSOPTS \
     -sOutputFile=- $GAMMAFILE -_ | \

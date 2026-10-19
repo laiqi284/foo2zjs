@@ -24,6 +24,7 @@ OPTIONS
     -n		Neuter CUPS cupsPSLevel2
     -w		Well Tempered Screens code
     -s		Stochastic FM Halftone code (1x1 Micro-Dots)
+    -m		Stochastic FM Halftone code (1x2 Micro-Doublets, Zero-ICM Vivid)
     -S		Stochastic FM Halftone code (2x2 Clustered Dots, Vivid Color)
     -D lvl	Debug level
 EOF
@@ -64,9 +65,10 @@ CIECOLOR=0
 NIXCUPS=0
 WTS=0
 STOCH=0
+STOCH12=0
 STOCH2=0
 GSVER=old
-while getopts "9ach:nwsSrD:Vh?" opt
+while getopts "9ach:nwsmSrD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -76,6 +78,7 @@ do
 	n)	NIXCUPS=1;;
 	r)	ROTATE90=1;;
 	s)	STOCH=1;;
+	m)	STOCH12=1;;
 	S)	STOCH2=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
@@ -226,7 +229,21 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    if [ $STOCH2 = 1 ]; then
+    # Stochastic FM Screening (1x2 Micro-Doublets, Zero-ICM Vivid Color)
+    ht_stoch12='\
+	<< /UseWTS false >> setuserparams\
+	{ (/usr/share/foo2zjs/crd/stoch12.ps) run } stopped {\
+	    pop { (/tmp/foo2zjs_stoch12.ps) run } stopped {\
+		pop (stoch12.ps) runlibfile\
+	    } if\
+	} if\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
+    '
+
+    if [ $STOCH12 = 1 ]; then
+	ht="$ht_stoch12"
+    elif [ $STOCH2 = 1 ]; then
 	ht="$ht_stoch2"
     elif [ $STOCH = 1 ]; then
 	ht="$ht_stoch1"
@@ -237,7 +254,17 @@ else
     fi
 fi
 
-if [ $STOCH2 = 1 ]; then
+if [ $STOCH12 = 1 ]; then
+    if [ ! -r /usr/share/foo2zjs/crd/stoch12.ps ] && [ ! -r /tmp/foo2zjs_stoch12.ps ]; then
+	PROGDIR=`dirname "$PROGNAME"`
+	if [ -r "$PROGDIR/crd/zjs/stoch12.ps" ]; then
+	    cp "$PROGDIR/crd/zjs/stoch12.ps" /tmp/foo2zjs_stoch12.ps 2>/dev/null
+	fi
+    fi
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $STOCH2 = 1 ]; then
     if [ ! -r /usr/share/foo2zjs/crd/stoch2.ps ] && [ ! -r /tmp/foo2zjs_stoch2.ps ]; then
 	PROGDIR=`dirname "$PROGNAME"`
 	if [ -r "$PROGDIR/crd/zjs/stoch2.ps" ]; then
