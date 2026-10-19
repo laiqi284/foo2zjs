@@ -324,7 +324,7 @@ as)
 wts)
     GSOPTS="-dCOLORSCREEN -dMaxBitmap=500000000 $GSOPTS"
     ;;
-stoch|stoch1|1x1|stoch2|2x2|fm|stoch12|1x2|stoch2v2|2x2v2|stoch2opt|2x2opt|stoch_grain|grain|organic|film)
+stoch|stoch1|1x1|stoch2|2x2|fm|stoch12|1x2|stoch2v2|2x2v2|stoch2opt|2x2opt|stoch_grain|grain|organic|film|stoch_diamond|diamond)
     GSOPTS="-dCOLORSCREEN -dMaxBitmap=500000000 $GSOPTS"
     ;;
 esac
@@ -732,7 +732,7 @@ create_crd() {
 		%!PS-Adobe-3.0
 		<</UseCIEColor true>>setpagedevice
 	EOF
-	if [ "$QUALITY" = wts -o "$QUALITY" = as -o "$QUALITY" = stoch -o "$QUALITY" = stoch1 -o "$QUALITY" = stoch2 -o "$QUALITY" = 1x1 -o "$QUALITY" = 2x2 -o "$QUALITY" = fm -o "$QUALITY" = stoch12 -o "$QUALITY" = 1x2 -o "$QUALITY" = stoch2v2 -o "$QUALITY" = 2x2v2 -o "$QUALITY" = stoch2opt -o "$QUALITY" = 2x2opt -o "$QUALITY" = stoch_grain -o "$QUALITY" = grain -o "$QUALITY" = organic -o "$QUALITY" = film ]; then
+	if [ "$QUALITY" = wts -o "$QUALITY" = as -o "$QUALITY" = stoch -o "$QUALITY" = stoch1 -o "$QUALITY" = stoch2 -o "$QUALITY" = 1x1 -o "$QUALITY" = 2x2 -o "$QUALITY" = fm -o "$QUALITY" = stoch12 -o "$QUALITY" = 1x2 -o "$QUALITY" = stoch2v2 -o "$QUALITY" = 2x2v2 -o "$QUALITY" = stoch2opt -o "$QUALITY" = 2x2opt -o "$QUALITY" = stoch_grain -o "$QUALITY" = grain -o "$QUALITY" = organic -o "$QUALITY" = film -o "$QUALITY" = stoch_diamond -o "$QUALITY" = diamond ]; then
 	    if [ "$QUALITY" = wts ]; then
 		cat >> $ICCTMP.usecie.ps <<-EOF
 		    << /UseWTS true >> setuserparams
@@ -929,6 +929,8 @@ elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch2v2 -o "$QUALITY" = 2x2v2 -o "$QUA
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -p"
 elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch_grain -o "$QUALITY" = grain -o "$QUALITY" = organic -o "$QUALITY" = film \) ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -g"
+elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch_diamond -o "$QUALITY" = diamond \) ]; then
+    PSTOPS_OPTS="$PSTOPS_OPTS -9 -d"
 elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 -o "$QUALITY" = fm \) ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -S"
 fi

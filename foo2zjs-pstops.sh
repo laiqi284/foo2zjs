@@ -68,9 +68,10 @@ STOCH=0
 STOCH12=0
 STOCH2V2=0
 STOCH_GRAIN=0
+STOCH_DIAMOND=0
 STOCH2=0
 GSVER=old
-while getopts "9ach:nwsmSprgD:Vh?" opt
+while getopts "9ach:nwsmSprgdD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -83,6 +84,7 @@ do
 	m)	STOCH12=1;;
 	p)	STOCH2V2=1;;
 	g)	STOCH_GRAIN=1;;
+	d)	STOCH_DIAMOND=1;;
 	S)	STOCH2=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
@@ -269,7 +271,21 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    if [ $STOCH_GRAIN = 1 ]; then
+    # 45-Degree Diamond Clustered FM Screening (stoch_diamond, y=2 x=2, Full 3D, Zero Mosaic)
+    ht_stoch_diamond='\
+	<< /UseWTS false >> setuserparams\
+	{ (/usr/share/foo2zjs/crd/stoch_diamond.ps) run } stopped {\
+	    pop { (/tmp/foo2zjs_stoch_diamond.ps) run } stopped {\
+		pop (stoch_diamond.ps) runlibfile\
+	    } if\
+	} if\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
+    '
+
+    if [ $STOCH_DIAMOND = 1 ]; then
+	ht="$ht_stoch_diamond"
+    elif [ $STOCH_GRAIN = 1 ]; then
 	ht="$ht_stoch_grain"
     elif [ $STOCH2V2 = 1 ]; then
 	ht="$ht_stoch2v2"
@@ -286,7 +302,17 @@ else
     fi
 fi
 
-if [ $STOCH_GRAIN = 1 ]; then
+if [ $STOCH_DIAMOND = 1 ]; then
+    if [ ! -r /usr/share/foo2zjs/crd/stoch_diamond.ps ] && [ ! -r /tmp/foo2zjs_stoch_diamond.ps ]; then
+	PROGDIR=`dirname "$PROGNAME"`
+	if [ -r "$PROGDIR/crd/zjs/stoch_diamond.ps" ]; then
+	    cp "$PROGDIR/crd/zjs/stoch_diamond.ps" /tmp/foo2zjs_stoch_diamond.ps 2>/dev/null
+	fi
+    fi
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $STOCH_GRAIN = 1 ]; then
     if [ ! -r /usr/share/foo2zjs/crd/stoch_grain.ps ] && [ ! -r /tmp/foo2zjs_stoch_grain.ps ]; then
 	PROGDIR=`dirname "$PROGNAME"`
 	if [ -r "$PROGDIR/crd/zjs/stoch_grain.ps" ]; then

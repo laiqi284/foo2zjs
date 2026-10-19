@@ -434,6 +434,8 @@
 *FoomaticRIPOptionSetting halftone=stoch2v2: " -qstoch2v2  "
 *halftone stoch_grain/Organic Stochastic (Seamless Film Grain, Zero-ICM Calibrated): "%% FoomaticRIPOptionSetting: halftone=stoch_grain"
 *FoomaticRIPOptionSetting halftone=stoch_grain: " -qstoch_grain  "
+*halftone stoch_diamond/Diamond Clustered (45-deg Diamond 2x2, Full 3D Vivid): "%% FoomaticRIPOptionSetting: halftone=stoch_diamond"
+*FoomaticRIPOptionSetting halftone=stoch_diamond: " -qstoch_diamond  "
 *CloseUI: *halftone
 
 *OpenUI *Density/Print Density: PickOne
