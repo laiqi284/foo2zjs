@@ -4,9 +4,13 @@ set_gamma.py: Dynamic Gamma / Tone Reproduction Curve (TRC) Tuner for foo2zjs Ha
 
 Features:
 - Instantaneous switching (<10ms) via cached blue-noise void-and-cluster rank arrays.
-- Supports stoch_diamond (Diamond 2x2), stoch_grain (Film Grain), and stoch2v2 (2x2 Progressive).
+- Supports:
+    1. stoch_diamond: 45° 菱形棋盘 2x2 聚簇挂网 (Diamond 2x2, 厚墨抗马赛克)
+    2. stoch2: 经典 2x2 刚性聚簇挂网 (Classic 2x2, 原版高反差)
+    3. stoch_grain: 有机胶片无规双点挂网 (Film Grain)
+    4. stoch2v2: 渐进式 2x2 聚簇挂网 (Progressive 2x2)
 - Automatically updates both crd/zjs/<screen>.ps and /tmp/foo2zjs_<screen>.ps (chmod 666 for CUPS).
-- Interactive status view showing active CUPS default halftone and current Gamma values.
+- Intelligently defaults to the currently active CUPS halftone screen.
 """
 
 import sys
@@ -27,6 +31,16 @@ SCREENS = {
         "cache": os.path.join(CRD_DIR, ".ranks_diamond.npz"),
         "dict_name": "DiamondClusteredFM",
         "default_gamma": 1.08,
+        "halftone_opt": "stoch_diamond",
+    },
+    "stoch2": {
+        "name": "Classic 2x2 Clustered (stoch2)",
+        "ps_repo": os.path.join(CRD_DIR, "stoch2.ps"),
+        "ps_tmp": "/tmp/foo2zjs_stoch2.ps",
+        "cache": os.path.join(CRD_DIR, ".ranks_stoch2.npz"),
+        "dict_name": "GreenNoiseFM",
+        "default_gamma": 0.85,
+        "halftone_opt": "stoch2",
     },
     "grain": {
         "name": "Organic Film Grain (stoch_grain)",
@@ -35,6 +49,7 @@ SCREENS = {
         "cache": os.path.join(CRD_DIR, ".ranks_grain.npz"),
         "dict_name": "OrganicGrainFM",
         "default_gamma": 1.08,
+        "halftone_opt": "stoch_grain",
     },
     "2v2": {
         "name": "Progressive 2x2 Clustered (stoch2v2)",
@@ -43,6 +58,7 @@ SCREENS = {
         "cache": os.path.join(CRD_DIR, ".ranks_stoch2v2.npz"),
         "dict_name": "GreenNoiseFMv2",
         "default_gamma": 1.08,
+        "halftone_opt": "stoch2v2",
     },
 }
 
@@ -53,7 +69,7 @@ def load_state():
                 return json.load(f)
         except Exception:
             pass
-    return {"diamond": 1.08, "grain": 1.08, "2v2": 1.08}
+    return {"diamond": 1.08, "stoch2": 0.85, "grain": 1.08, "2v2": 1.08}
 
 def save_state(state):
     os.makedirs(CRD_DIR, exist_ok=True)
@@ -135,6 +151,33 @@ def apply_gamma_diamond(gamma):
     ps_text = build_ps_content(
         cfg["dict_name"],
         "45-Degree Diamond Clustered FM Screening (stoch_diamond.ps)",
+        gamma, c_mat, m_mat, y_mat, k_mat
+    )
+    deploy_ps(cfg, ps_text)
+
+def apply_gamma_stoch2(gamma):
+    cfg = SCREENS["stoch2"]
+    data = np.load(cfg["cache"])
+    c_rank = data["c"]
+    m_rank = data["m"]
+    y_rank = data["y"]
+    k_rank = data["k"]
+    size = 64
+
+    def to_thresh(rank):
+        base_th = (rank * 254.0 / (size * size - 1)).astype(np.uint8)
+        arr = base_th.astype(float) / 254.0
+        tuned = (np.power(arr, gamma) * 254.0).clip(0, 254).astype(np.uint8)
+        return np.repeat(np.repeat(tuned, 2, axis=0), 2, axis=1)
+
+    c_mat = to_thresh(c_rank)
+    m_mat = to_thresh(m_rank)
+    y_mat = to_thresh(y_rank)
+    k_mat = to_thresh(k_rank)
+
+    ps_text = build_ps_content(
+        cfg["dict_name"],
+        f"2x2 Cluster-Dot Green Noise FM Screening (stoch2.ps)\n% Density calibrated: gamma = {gamma:.2f}",
         gamma, c_mat, m_mat, y_mat, k_mat
     )
     deploy_ps(cfg, ps_text)
@@ -237,32 +280,33 @@ def get_cups_active_halftone():
 def show_status():
     state = load_state()
     active_ht = get_cups_active_halftone()
-    print("=" * 66)
-    print("   HP LaserJet CP1025 半色调 Gamma / 色调曲线调节工具")
-    print("=" * 66)
+    print("=" * 68)
+    print("     HP LaserJet CP1025 半色调 Gamma / 色调曲线极速调节工具")
+    print("=" * 68)
     print(f"当前 CUPS 默认挂网: \033[1;32m{active_ht}\033[0m")
-    print("-" * 66)
+    print("-" * 68)
     print("各半色调方案当前 Gamma 值:")
     for key, cfg in SCREENS.items():
         g = state.get(key, cfg["default_gamma"])
-        tag = " [当前默认]" if (active_ht == "stoch_" + key or (key == "2v2" and active_ht == "stoch2v2")) else ""
+        is_active = (active_ht == cfg["halftone_opt"])
+        tag = " \033[1;32m[当前默认]\033[0m" if is_active else ""
         print(f"  • {key:7s} ({cfg['name']}): \033[1;33mGamma = {g:.2f}\033[0m{tag}")
-    print("-" * 66)
+    print("-" * 68)
     print("Gamma 效果速查:")
-    print("  • Gamma = 0.85 : 压深加浓、黑位极深、高反差浮雕感（类似原版 2x2）")
+    print("  • Gamma = 0.85 : 压深加浓、黑位极深、高反差浮雕质感（经典 2x2 原装标定）")
     print("  • Gamma = 1.00 : 数学线性直出、无反网点扩大补偿")
     print("  • Gamma = 1.08 : 反网点扩大补偿、中调通透真实、高反光 3D 色彩（实测推荐）")
-    print("-" * 66)
+    print("-" * 68)
     print("使用方法:")
-    print("  ./set-gamma.sh <gamma> [目标方案: diamond | grain | 2v2 | all]")
+    print("  set-gamma <gamma> [目标方案: diamond | stoch2 | grain | 2v2 | all]")
     print("")
     print("示例:")
-    print("  ./set-gamma.sh 0.85        # 将默认的 stoch_diamond 设为 Gamma 0.85")
-    print("  ./set-gamma.sh 1.0         # 将默认的 stoch_diamond 设为 Gamma 1.0")
-    print("  ./set-gamma.sh 1.08        # 恢复推荐的 Gamma 1.08")
-    print("  ./set-gamma.sh 0.85 all    # 将 diamond、grain、2v2 全部设为 Gamma 0.85")
-    print("  ./set-gamma.sh 1.0 grain   # 单独将 stoch_grain 设为 Gamma 1.0")
-    print("=" * 66)
+    print("  set-gamma 0.85            # 直接调节当前默认挂网为 Gamma 0.85")
+    print("  set-gamma 1.0 stoch2      # 将经典 2x2 (stoch2) 设为 Gamma 1.0")
+    print("  set-gamma 0.85 stoch2     # 将经典 2x2 (stoch2) 恢复默认 0.85")
+    print("  set-gamma 1.08 diamond    # 将 45° 菱形 2x2 设为推荐的 Gamma 1.08")
+    print("  set-gamma 0.85 all        # 同时将全部方案统一设为 Gamma 0.85")
+    print("=" * 68)
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help", "status"):
@@ -276,31 +320,51 @@ def main():
             sys.exit(1)
     except ValueError:
         print(f"错误: 无法解析 Gamma 参数 '{sys.argv[1]}'")
-        print("用法示例: ./set-gamma.sh 0.85")
+        print("用法示例: set-gamma 0.85")
         sys.exit(1)
 
-    target = "diamond"
+    target = None
     if len(sys.argv) >= 3:
-        target = sys.argv[2].lower()
-        if target in ("stoch_diamond", "dia"): target = "diamond"
-        elif target in ("stoch_grain", "film", "organic"): target = "grain"
-        elif target in ("stoch2v2", "stoch2_v2", "v2"): target = "2v2"
+        raw_target = sys.argv[2].lower()
+        if raw_target in ("stoch_diamond", "diamond", "dia"):
+            target = "diamond"
+        elif raw_target in ("stoch2", "2x2", "classic", "legacy", "old2x2"):
+            target = "stoch2"
+        elif raw_target in ("stoch_grain", "grain", "film", "organic"):
+            target = "grain"
+        elif raw_target in ("stoch2v2", "stoch2_v2", "v2", "2v2", "2x2v2"):
+            target = "2v2"
+        elif raw_target == "all":
+            target = "all"
+        else:
+            print(f"错误: 未知目标方案 '{raw_target}'，可选: diamond, stoch2, grain, 2v2, all")
+            sys.exit(1)
+    else:
+        # Intelligently default to active CUPS halftone
+        active_ht = get_cups_active_halftone()
+        if active_ht in ("stoch2", "2x2"):
+            target = "stoch2"
+        elif active_ht == "stoch_grain":
+            target = "grain"
+        elif active_ht == "stoch2v2":
+            target = "2v2"
+        else:
+            target = "diamond"
 
     state = load_state()
 
     targets_to_update = []
     if target == "all":
-        targets_to_update = ["diamond", "grain", "2v2"]
+        targets_to_update = ["diamond", "stoch2", "grain", "2v2"]
     elif target in SCREENS:
         targets_to_update = [target]
-    else:
-        print(f"错误: 未知目标方案 '{target}'，可选: diamond, grain, 2v2, all")
-        sys.exit(1)
 
     print(f"\n>> 正在应用 Gamma = \033[1;32m{gamma:.2f}\033[0m ...")
     for t in targets_to_update:
         if t == "diamond":
             apply_gamma_diamond(gamma)
+        elif t == "stoch2":
+            apply_gamma_stoch2(gamma)
         elif t == "grain":
             apply_gamma_grain(gamma)
         elif t == "2v2":
@@ -309,7 +373,7 @@ def main():
         print(f"  ✓ 已更新 {SCREENS[t]['name']} (Gamma = {gamma:.2f})")
 
     save_state(state)
-    print("\n\033[1;32m配置已生效！\033[0m")
+    print("\n\033[1;32m配置已实时生效！\033[0m")
     if gamma < 1.0:
         print("  [效果特性] 画面加深加浓，暗部黑位更厚重，高反差浮雕质感。")
     elif abs(gamma - 1.0) < 1e-4:
