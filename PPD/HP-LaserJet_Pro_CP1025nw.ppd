@@ -428,8 +428,10 @@
 *FoomaticRIPOptionSetting halftone=stoch: " -qstoch  "
 *halftone stoch12/Stochastic Screening (1x2 Micro-Doublets, Zero-ICM Vivid): "%% FoomaticRIPOptionSetting: halftone=stoch12"
 *FoomaticRIPOptionSetting halftone=stoch12: " -qstoch12  "
-*halftone stoch2/Stochastic Screening (2x2 Clustered, Vivid Color): "%% FoomaticRIPOptionSetting: halftone=stoch2"
+*halftone stoch2/Stochastic Screening (2x2 Clustered, Legacy Vivid): "%% FoomaticRIPOptionSetting: halftone=stoch2"
 *FoomaticRIPOptionSetting halftone=stoch2: " -qstoch2  "
+*halftone stoch2v2/Stochastic Screening (2x2 Progressive Nucleation, Calibrated): "%% FoomaticRIPOptionSetting: halftone=stoch2v2"
+*FoomaticRIPOptionSetting halftone=stoch2v2: " -qstoch2v2  "
 *CloseUI: *halftone
 
 *OpenUI *Density/Print Density: PickOne

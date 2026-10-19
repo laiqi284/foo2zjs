@@ -66,9 +66,10 @@ NIXCUPS=0
 WTS=0
 STOCH=0
 STOCH12=0
+STOCH2V2=0
 STOCH2=0
 GSVER=old
-while getopts "9ach:nwsmSrD:Vh?" opt
+while getopts "9ach:nwsmSprD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -79,6 +80,7 @@ do
 	r)	ROTATE90=1;;
 	s)	STOCH=1;;
 	m)	STOCH12=1;;
+	p)	STOCH2V2=1;;
 	S)	STOCH2=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
@@ -241,7 +243,21 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    if [ $STOCH12 = 1 ]; then
+    # Stochastic FM Screening v2 (2x2 Clustered FM, Progressive Nucleation & Anti-Dot-Gain TRC)
+    ht_stoch2v2='\
+	<< /UseWTS false >> setuserparams\
+	{ (/usr/share/foo2zjs/crd/stoch2v2.ps) run } stopped {\
+	    pop { (/tmp/foo2zjs_stoch2v2.ps) run } stopped {\
+		pop (stoch2v2.ps) runlibfile\
+	    } if\
+	} if\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
+    '
+
+    if [ $STOCH2V2 = 1 ]; then
+	ht="$ht_stoch2v2"
+    elif [ $STOCH12 = 1 ]; then
 	ht="$ht_stoch12"
     elif [ $STOCH2 = 1 ]; then
 	ht="$ht_stoch2"
@@ -254,7 +270,17 @@ else
     fi
 fi
 
-if [ $STOCH12 = 1 ]; then
+if [ $STOCH2V2 = 1 ]; then
+    if [ ! -r /usr/share/foo2zjs/crd/stoch2v2.ps ] && [ ! -r /tmp/foo2zjs_stoch2v2.ps ]; then
+	PROGDIR=`dirname "$PROGNAME"`
+	if [ -r "$PROGDIR/crd/zjs/stoch2v2.ps" ]; then
+	    cp "$PROGDIR/crd/zjs/stoch2v2.ps" /tmp/foo2zjs_stoch2v2.ps 2>/dev/null
+	fi
+    fi
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $STOCH12 = 1 ]; then
     if [ ! -r /usr/share/foo2zjs/crd/stoch12.ps ] && [ ! -r /tmp/foo2zjs_stoch12.ps ]; then
 	PROGDIR=`dirname "$PROGNAME"`
 	if [ -r "$PROGDIR/crd/zjs/stoch12.ps" ]; then
