@@ -24,7 +24,7 @@ import numpy as np
 import scipy.ndimage
 import os
 
-def generate_grain_halftone(width=128, height=128, sigma=2.0, gamma=1.08):
+def generate_grain_halftone(width=128, height=128, sigma=2.0, gamma=1.00):
     nx = width // 2 # 64
     ny = height     # 128
     total_doublets = nx * ny # 8192
