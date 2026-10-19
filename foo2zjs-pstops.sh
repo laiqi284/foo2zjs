@@ -67,9 +67,10 @@ WTS=0
 STOCH=0
 STOCH12=0
 STOCH2V2=0
+STOCH_GRAIN=0
 STOCH2=0
 GSVER=old
-while getopts "9ach:nwsmSprD:Vh?" opt
+while getopts "9ach:nwsmSprgD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -81,6 +82,7 @@ do
 	s)	STOCH=1;;
 	m)	STOCH12=1;;
 	p)	STOCH2V2=1;;
+	g)	STOCH_GRAIN=1;;
 	S)	STOCH2=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
@@ -255,7 +257,21 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    if [ $STOCH2V2 = 1 ]; then
+    # Organic Seamless Stochastic FM Screening (Film Grain, Zero Mosaic)
+    ht_stoch_grain='\
+	<< /UseWTS false >> setuserparams\
+	{ (/usr/share/foo2zjs/crd/stoch_grain.ps) run } stopped {\
+	    pop { (/tmp/foo2zjs_stoch_grain.ps) run } stopped {\
+		pop (stoch_grain.ps) runlibfile\
+	    } if\
+	} if\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
+    '
+
+    if [ $STOCH_GRAIN = 1 ]; then
+	ht="$ht_stoch_grain"
+    elif [ $STOCH2V2 = 1 ]; then
 	ht="$ht_stoch2v2"
     elif [ $STOCH12 = 1 ]; then
 	ht="$ht_stoch12"
@@ -270,7 +286,17 @@ else
     fi
 fi
 
-if [ $STOCH2V2 = 1 ]; then
+if [ $STOCH_GRAIN = 1 ]; then
+    if [ ! -r /usr/share/foo2zjs/crd/stoch_grain.ps ] && [ ! -r /tmp/foo2zjs_stoch_grain.ps ]; then
+	PROGDIR=`dirname "$PROGNAME"`
+	if [ -r "$PROGDIR/crd/zjs/stoch_grain.ps" ]; then
+	    cp "$PROGDIR/crd/zjs/stoch_grain.ps" /tmp/foo2zjs_stoch_grain.ps 2>/dev/null
+	fi
+    fi
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $STOCH2V2 = 1 ]; then
     if [ ! -r /usr/share/foo2zjs/crd/stoch2v2.ps ] && [ ! -r /tmp/foo2zjs_stoch2v2.ps ]; then
 	PROGDIR=`dirname "$PROGNAME"`
 	if [ -r "$PROGDIR/crd/zjs/stoch2v2.ps" ]; then
