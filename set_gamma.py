@@ -259,10 +259,41 @@ def deploy_ps(cfg, ps_text):
     # 1. Write to repository crd/zjs
     with open(cfg["ps_repo"], "w") as f:
         f.write(ps_text)
-    # 2. Write to /tmp for immediate live use by Ghostscript / CUPS
-    with open(cfg["ps_tmp"], "w") as f:
-        f.write(ps_text)
-    os.chmod(cfg["ps_tmp"], 0o666)
+    # 2. Write to persistent /var/tmp/foo2zjs/crd/
+    var_crd = os.path.join("/var/tmp/foo2zjs/crd", os.path.basename(cfg["ps_repo"]))
+    try:
+        os.makedirs("/var/tmp/foo2zjs/crd", exist_ok=True)
+        with open(var_crd, "w") as f:
+            f.write(ps_text)
+        os.chmod(var_crd, 0o666)
+    except Exception:
+        pass
+    # 3. Write to /tmp for backward compatibility
+    try:
+        with open(cfg["ps_tmp"], "w") as f:
+            f.write(ps_text)
+        os.chmod(cfg["ps_tmp"], 0o666)
+    except Exception:
+        pass
+
+def ensure_persistent_runtime():
+    try:
+        os.makedirs("/var/tmp/foo2zjs/crd", exist_ok=True)
+        os.chmod("/var/tmp/foo2zjs", 0o777)
+        wrap_src = os.path.join(SCRIPT_DIR, "foo2zjs-wrapper")
+        wrap_dst = "/var/tmp/foo2zjs/foo2zjs-wrapper"
+        pst_src = os.path.join(SCRIPT_DIR, "foo2zjs-pstops")
+        pst_dst = "/var/tmp/foo2zjs/foo2zjs-pstops"
+        if os.path.exists(wrap_src):
+            import shutil
+            shutil.copyfile(wrap_src, wrap_dst)
+            os.chmod(wrap_dst, 0o777)
+        if os.path.exists(pst_src):
+            import shutil
+            shutil.copyfile(pst_src, pst_dst)
+            os.chmod(pst_dst, 0o777)
+    except Exception:
+        pass
 
 def get_cups_active_halftone():
     try:
@@ -309,6 +340,7 @@ def show_status():
     print("=" * 68)
 
 def main():
+    ensure_persistent_runtime()
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help", "status"):
         show_status()
         return

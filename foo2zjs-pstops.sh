@@ -215,8 +215,10 @@ else
     ht_stoch1='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch.ps) run } stopped {\
-	    pop { (/tmp/foo2zjs_stoch.ps) run } stopped {\
-		pop (stocht.ps) runlibfile\
+	    pop { (/var/tmp/foo2zjs/crd/stoch.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch.ps) run } stopped {\
+		    pop (stocht.ps) runlibfile\
+		} if\
 	    } if\
 	} if\
 	userdict /settransfer { pop } bind put\
@@ -227,8 +229,10 @@ else
     ht_stoch2='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch2.ps) run } stopped {\
-	    pop { (/tmp/foo2zjs_stoch2.ps) run } stopped {\
-		pop (stoch2.ps) runlibfile\
+	    pop { (/var/tmp/foo2zjs/crd/stoch2.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch2.ps) run } stopped {\
+		    pop (stoch2.ps) runlibfile\
+		} if\
 	    } if\
 	} if\
 	userdict /settransfer { pop } bind put\
@@ -239,8 +243,10 @@ else
     ht_stoch12='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch12.ps) run } stopped {\
-	    pop { (/tmp/foo2zjs_stoch12.ps) run } stopped {\
-		pop (stoch12.ps) runlibfile\
+	    pop { (/var/tmp/foo2zjs/crd/stoch12.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch12.ps) run } stopped {\
+		    pop (stoch12.ps) runlibfile\
+		} if\
 	    } if\
 	} if\
 	userdict /settransfer { pop } bind put\
@@ -251,8 +257,10 @@ else
     ht_stoch2v2='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch2v2.ps) run } stopped {\
-	    pop { (/tmp/foo2zjs_stoch2v2.ps) run } stopped {\
-		pop (stoch2v2.ps) runlibfile\
+	    pop { (/var/tmp/foo2zjs/crd/stoch2v2.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch2v2.ps) run } stopped {\
+		    pop (stoch2v2.ps) runlibfile\
+		} if\
 	    } if\
 	} if\
 	userdict /settransfer { pop } bind put\
@@ -263,8 +271,10 @@ else
     ht_stoch_grain='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch_grain.ps) run } stopped {\
-	    pop { (/tmp/foo2zjs_stoch_grain.ps) run } stopped {\
-		pop (stoch_grain.ps) runlibfile\
+	    pop { (/var/tmp/foo2zjs/crd/stoch_grain.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch_grain.ps) run } stopped {\
+		    pop (stoch_grain.ps) runlibfile\
+		} if\
 	    } if\
 	} if\
 	userdict /settransfer { pop } bind put\
@@ -275,8 +285,10 @@ else
     ht_stoch_diamond='\
 	<< /UseWTS false >> setuserparams\
 	{ (/usr/share/foo2zjs/crd/stoch_diamond.ps) run } stopped {\
-	    pop { (/tmp/foo2zjs_stoch_diamond.ps) run } stopped {\
-		pop (stoch_diamond.ps) runlibfile\
+	    pop { (/var/tmp/foo2zjs/crd/stoch_diamond.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch_diamond.ps) run } stopped {\
+		    pop (stoch_diamond.ps) runlibfile\
+		} if\
 	    } if\
 	} if\
 	userdict /settransfer { pop } bind put\

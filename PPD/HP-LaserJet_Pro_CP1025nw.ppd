@@ -87,7 +87,7 @@
 *ParamCustomPageSize HeightOffset: 5 points 0 0
 
 *FoomaticIDs: HP-LaserJet_Pro_CP1025nw foo2zjs-z3
-*FoomaticRIPCommandLine: "/tmp/foo2zjs_wrapper -z3 -P -L0 %A"
+*FoomaticRIPCommandLine: "/var/tmp/foo2zjs/foo2zjs-wrapper -z3 -P -L0 %A"
 
 *OpenGroup: General/General
 
