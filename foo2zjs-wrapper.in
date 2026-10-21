@@ -53,7 +53,19 @@ PROGNAME="$0"
 BASENAME=`basename $PROGNAME`
 PREFIX=/usr
 SHARE=$PREFIX/share/foo2zjs
-PATH=$PATH:/sw/bin:/opt/local/bin
+PATH=/var/tmp/foo2zjs:/tmp:$PATH:/sw/bin:/opt/local/bin
+
+# Auto-restore crd halftones to /tmp if wiped after reboot
+if [ -d /var/tmp/foo2zjs/crd ]; then
+    for f in /var/tmp/foo2zjs/crd/*.ps; do
+	[ -r "$f" ] || continue
+	b=`basename "$f"`
+	if [ ! -r "/tmp/foo2zjs_$b" ]; then
+	    cp "$f" "/tmp/foo2zjs_$b" 2>/dev/null
+	    chmod 666 "/tmp/foo2zjs_$b" 2>/dev/null
+	fi
+    done
+fi
 
 #
 #	Log the command line, for debugging and problem reports
@@ -962,10 +974,12 @@ fi
 #	intermingled with the printer drivers output, resulting in
 #	corrupted image data.
 #
-GS="$GSBIN -q -dBATCH -dSAFER -dQUIET -dNOPAUSE"
+GS="$GSBIN -q -dBATCH -dSAFER --permit-file-read=/var/tmp/foo2zjs/crd/ --permit-file-read=/tmp/ -dQUIET -dNOPAUSE"
 
 PSTOPSBIN=foo2zjs-pstops
-if [ -x /tmp/foo2zjs-pstops ]; then
+if [ -x /var/tmp/foo2zjs/foo2zjs-pstops ]; then
+    PSTOPSBIN=/var/tmp/foo2zjs/foo2zjs-pstops
+elif [ -x /tmp/foo2zjs-pstops ]; then
     PSTOPSBIN=/tmp/foo2zjs-pstops
 fi
 

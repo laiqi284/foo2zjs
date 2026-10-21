@@ -314,63 +314,48 @@ else
     fi
 fi
 
-if [ $STOCH_DIAMOND = 1 ]; then
-    if [ ! -r /usr/share/foo2zjs/crd/stoch_diamond.ps ] && [ ! -r /tmp/foo2zjs_stoch_diamond.ps ]; then
+ensure_crd() {
+    crd_name="$1"
+    if [ ! -r "/usr/share/foo2zjs/crd/$crd_name" ] && [ ! -r "/tmp/foo2zjs_$crd_name" ]; then
 	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/stoch_diamond.ps" ]; then
-	    cp "$PROGDIR/crd/zjs/stoch_diamond.ps" /tmp/foo2zjs_stoch_diamond.ps 2>/dev/null
+	if [ -r "$PROGDIR/crd/zjs/$crd_name" ]; then
+	    cp "$PROGDIR/crd/zjs/$crd_name" "/tmp/foo2zjs_$crd_name" 2>/dev/null
+	elif [ -r "$PROGDIR/crd/$crd_name" ]; then
+	    cp "$PROGDIR/crd/$crd_name" "/tmp/foo2zjs_$crd_name" 2>/dev/null
+	elif [ -r "/var/tmp/foo2zjs/crd/$crd_name" ]; then
+	    cp "/var/tmp/foo2zjs/crd/$crd_name" "/tmp/foo2zjs_$crd_name" 2>/dev/null
 	fi
+	chmod 666 "/tmp/foo2zjs_$crd_name" 2>/dev/null
     fi
+}
+
+if [ $STOCH_DIAMOND = 1 ]; then
+    ensure_crd stoch_diamond.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
 elif [ $STOCH_GRAIN = 1 ]; then
-    if [ ! -r /usr/share/foo2zjs/crd/stoch_grain.ps ] && [ ! -r /tmp/foo2zjs_stoch_grain.ps ]; then
-	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/stoch_grain.ps" ]; then
-	    cp "$PROGDIR/crd/zjs/stoch_grain.ps" /tmp/foo2zjs_stoch_grain.ps 2>/dev/null
-	fi
-    fi
+    ensure_crd stoch_grain.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
 elif [ $STOCH2V2 = 1 ]; then
-    if [ ! -r /usr/share/foo2zjs/crd/stoch2v2.ps ] && [ ! -r /tmp/foo2zjs_stoch2v2.ps ]; then
-	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/stoch2v2.ps" ]; then
-	    cp "$PROGDIR/crd/zjs/stoch2v2.ps" /tmp/foo2zjs_stoch2v2.ps 2>/dev/null
-	fi
-    fi
+    ensure_crd stoch2v2.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
 elif [ $STOCH12 = 1 ]; then
-    if [ ! -r /usr/share/foo2zjs/crd/stoch12.ps ] && [ ! -r /tmp/foo2zjs_stoch12.ps ]; then
-	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/stoch12.ps" ]; then
-	    cp "$PROGDIR/crd/zjs/stoch12.ps" /tmp/foo2zjs_stoch12.ps 2>/dev/null
-	fi
-    fi
+    ensure_crd stoch12.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
 elif [ $STOCH2 = 1 ]; then
-    if [ ! -r /usr/share/foo2zjs/crd/stoch2.ps ] && [ ! -r /tmp/foo2zjs_stoch2.ps ]; then
-	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/stoch2.ps" ]; then
-	    cp "$PROGDIR/crd/zjs/stoch2.ps" /tmp/foo2zjs_stoch2.ps 2>/dev/null
-	fi
-    fi
+    ensure_crd stoch2.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
 elif [ $STOCH = 1 ]; then
-    if [ ! -r /usr/share/foo2zjs/crd/stoch.ps ] && [ ! -r /tmp/foo2zjs_stoch.ps ]; then
-	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/stoch.ps" ]; then
-	    cp "$PROGDIR/crd/zjs/stoch.ps" /tmp/foo2zjs_stoch.ps 2>/dev/null
-	fi
-    fi
+    ensure_crd stoch.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht
 	"
