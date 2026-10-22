@@ -24,6 +24,15 @@ CRD_DIR = os.path.join(SCRIPT_DIR, "crd", "zjs")
 STATE_FILE = os.path.join(CRD_DIR, ".gamma_state.json")
 
 SCREENS = {
+    "honeycomb": {
+        "name": "Honeycomb Anti-Box 2x2 (stoch_honeycomb)",
+        "ps_repo": os.path.join(CRD_DIR, "stoch_honeycomb.ps"),
+        "ps_tmp": "/tmp/foo2zjs_stoch_honeycomb.ps",
+        "cache": os.path.join(CRD_DIR, ".ranks_honeycomb.npz"),
+        "dict_name": "Honeycomb2x2FM",
+        "default_gamma": 1.08,
+        "halftone_opt": "stoch_honeycomb",
+    },
     "diamond": {
         "name": "Diamond Clustered 2x2 (stoch_diamond)",
         "ps_repo": os.path.join(CRD_DIR, "stoch_diamond.ps"),
@@ -69,7 +78,7 @@ def load_state():
                 return json.load(f)
         except Exception:
             pass
-    return {"diamond": 1.08, "stoch2": 0.85, "grain": 1.08, "2v2": 1.08}
+    return {"honeycomb": 1.08, "diamond": 1.08, "stoch2": 0.85, "grain": 1.08, "2v2": 1.08}
 
 def save_state(state):
     os.makedirs(CRD_DIR, exist_ok=True)
@@ -215,6 +224,51 @@ def apply_gamma_grain(gamma):
     )
     deploy_ps(cfg, ps_text)
 
+def apply_gamma_honeycomb(gamma):
+    cfg = SCREENS["honeycomb"]
+    data = np.load(cfg["cache"])
+    c_ranks = data["c"]
+    m_ranks = data["m"]
+    y_ranks = data["y"]
+    k_ranks = data["k"]
+    n_blocks = 4096.0
+
+    y0_f = np.zeros(4096, dtype=int)
+    y1_f = np.zeros(4096, dtype=int)
+    x0_f = np.zeros(4096, dtype=int)
+    x1_f = np.zeros(4096, dtype=int)
+    for cy in range(64):
+        for cx in range(64):
+            idx = cy * 64 + cx
+            y0_f[idx] = 2 * cy
+            y1_f[idx] = 2 * cy + 1
+            shift = 1 if (cy % 2 == 1) else 0
+            x0_f[idx] = (2 * cx + shift) % 128
+            x1_f[idx] = (2 * cx + shift + 1) % 128
+
+    def to_thresh(ranks):
+        norm = ranks / n_blocks
+        norm_trc = norm ** gamma
+        thresh = np.clip(np.round(norm_trc * 254.0 + 1.0), 1, 255).astype(np.uint8)
+        mat = np.zeros((128, 128), dtype=np.uint8)
+        mat[y0_f, x0_f] = thresh
+        mat[y0_f, x1_f] = thresh
+        mat[y1_f, x0_f] = thresh
+        mat[y1_f, x1_f] = thresh
+        return mat
+
+    c_mat = to_thresh(c_ranks)
+    m_mat = to_thresh(m_ranks)
+    y_mat = to_thresh(y_ranks)
+    k_mat = to_thresh(k_ranks)
+
+    ps_text = build_ps_content(
+        cfg["dict_name"],
+        "Hexagonal Honeycomb Clustered 2x2 FM Screening (stoch_honeycomb.ps)",
+        gamma, c_mat, m_mat, y_mat, k_mat
+    )
+    deploy_ps(cfg, ps_text)
+
 def apply_gamma_2v2(gamma):
     cfg = SCREENS["2v2"]
     data = np.load(cfg["cache"])
@@ -329,13 +383,13 @@ def show_status():
     print("  • Gamma = 1.08 : 反网点扩大补偿、中调通透真实、高反光 3D 色彩（实测推荐）")
     print("-" * 68)
     print("使用方法:")
-    print("  set-gamma <gamma> [目标方案: diamond | stoch2 | grain | 2v2 | all]")
+    print("  set-gamma <gamma> [目标方案: honeycomb | diamond | stoch2 | grain | 2v2 | all]")
     print("")
     print("示例:")
     print("  set-gamma 0.85            # 直接调节当前默认挂网为 Gamma 0.85")
+    print("  set-gamma 1.08 honeycomb  # 将蜂巢无格 2x2 (stoch_honeycomb) 设为 Gamma 1.08")
     print("  set-gamma 1.0 stoch2      # 将经典 2x2 (stoch2) 设为 Gamma 1.0")
     print("  set-gamma 0.85 stoch2     # 将经典 2x2 (stoch2) 恢复默认 0.85")
-    print("  set-gamma 1.08 diamond    # 将 45° 菱形 2x2 设为推荐的 Gamma 1.08")
     print("  set-gamma 0.85 all        # 同时将全部方案统一设为 Gamma 0.85")
     print("=" * 68)
 
@@ -358,7 +412,9 @@ def main():
     target = None
     if len(sys.argv) >= 3:
         raw_target = sys.argv[2].lower()
-        if raw_target in ("stoch_diamond", "diamond", "dia"):
+        if raw_target in ("stoch_honeycomb", "honeycomb", "hex2", "hex", "anti_box"):
+            target = "honeycomb"
+        elif raw_target in ("stoch_diamond", "diamond", "dia"):
             target = "diamond"
         elif raw_target in ("stoch2", "2x2", "classic", "legacy", "old2x2"):
             target = "stoch2"
@@ -369,31 +425,35 @@ def main():
         elif raw_target == "all":
             target = "all"
         else:
-            print(f"错误: 未知目标方案 '{raw_target}'，可选: diamond, stoch2, grain, 2v2, all")
+            print(f"错误: 未知目标方案 '{raw_target}'，可选: honeycomb, diamond, stoch2, grain, 2v2, all")
             sys.exit(1)
     else:
         # Intelligently default to active CUPS halftone
         active_ht = get_cups_active_halftone()
-        if active_ht in ("stoch2", "2x2"):
+        if active_ht in ("stoch_honeycomb", "honeycomb"):
+            target = "honeycomb"
+        elif active_ht in ("stoch2", "2x2"):
             target = "stoch2"
         elif active_ht == "stoch_grain":
             target = "grain"
         elif active_ht == "stoch2v2":
             target = "2v2"
         else:
-            target = "diamond"
+            target = "honeycomb"
 
     state = load_state()
 
     targets_to_update = []
     if target == "all":
-        targets_to_update = ["diamond", "stoch2", "grain", "2v2"]
+        targets_to_update = ["honeycomb", "diamond", "stoch2", "grain", "2v2"]
     elif target in SCREENS:
         targets_to_update = [target]
 
     print(f"\n>> 正在应用 Gamma = \033[1;32m{gamma:.2f}\033[0m ...")
     for t in targets_to_update:
-        if t == "diamond":
+        if t == "honeycomb":
+            apply_gamma_honeycomb(gamma)
+        elif t == "diamond":
             apply_gamma_diamond(gamma)
         elif t == "stoch2":
             apply_gamma_stoch2(gamma)

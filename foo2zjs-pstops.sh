@@ -69,9 +69,10 @@ STOCH12=0
 STOCH2V2=0
 STOCH_GRAIN=0
 STOCH_DIAMOND=0
+STOCH_HONEYCOMB=0
 STOCH2=0
 GSVER=old
-while getopts "9ach:nwsmSprgdD:Vh?" opt
+while getopts "9ach:nwsmSprgdHD:Vh?" opt
 do
 	case $opt in
 	9)	GSVER=gs9;;
@@ -85,6 +86,7 @@ do
 	p)	STOCH2V2=1;;
 	g)	STOCH_GRAIN=1;;
 	d)	STOCH_DIAMOND=1;;
+	H)	STOCH_HONEYCOMB=1;;
 	S)	STOCH2=1;;
 	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
@@ -295,7 +297,23 @@ else
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '
 
-    if [ $STOCH_DIAMOND = 1 ]; then
+    # Hexagonal Honeycomb Clustered FM Screening (stoch_honeycomb, y=2 x=2, Full 3D, Zero Box Grid)
+    ht_stoch_honeycomb='\
+	<< /UseWTS false >> setuserparams\
+	{ (/usr/share/foo2zjs/crd/stoch_honeycomb.ps) run } stopped {\
+	    pop { (/var/tmp/foo2zjs/crd/stoch_honeycomb.ps) run } stopped {\
+		pop { (/tmp/foo2zjs_stoch_honeycomb.ps) run } stopped {\
+		    pop (stoch_honeycomb.ps) runlibfile\
+		} if\
+	    } if\
+	} if\
+	userdict /settransfer { pop } bind put\
+	userdict /setcolortransfer { pop pop pop pop } bind put\
+    '
+
+    if [ $STOCH_HONEYCOMB = 1 ]; then
+	ht="$ht_stoch_honeycomb"
+    elif [ $STOCH_DIAMOND = 1 ]; then
 	ht="$ht_stoch_diamond"
     elif [ $STOCH_GRAIN = 1 ]; then
 	ht="$ht_stoch_grain"
@@ -329,7 +347,12 @@ ensure_crd() {
     fi
 }
 
-if [ $STOCH_DIAMOND = 1 ]; then
+if [ $STOCH_HONEYCOMB = 1 ]; then
+    ensure_crd stoch_honeycomb.ps
+    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
+	$ht
+	"
+elif [ $STOCH_DIAMOND = 1 ]; then
     ensure_crd stoch_diamond.ps
     w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
 	$ht

@@ -436,6 +436,8 @@
 *FoomaticRIPOptionSetting halftone=stoch_grain: " -qstoch_grain  "
 *halftone stoch_diamond/Diamond Clustered (45-deg Diamond 2x2, Full 3D Vivid): "%% FoomaticRIPOptionSetting: halftone=stoch_diamond"
 *FoomaticRIPOptionSetting halftone=stoch_diamond: " -qstoch_diamond  "
+*halftone stoch_honeycomb/Honeycomb Clustered (Hexagonal Anti-Box 2x2, Smooth 3D Vivid): "%% FoomaticRIPOptionSetting: halftone=stoch_honeycomb"
+*FoomaticRIPOptionSetting halftone=stoch_honeycomb: " -qstoch_honeycomb  "
 *CloseUI: *halftone
 
 *OpenUI *Density/Print Density: PickOne
