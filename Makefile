@@ -251,7 +251,7 @@ CUPS_GOODAPI := $(shell cups-config --api-version 2>/dev/null | sed "s/1\.[0123]
 # sihpP1005.img sihpP1006.img sihpP1505.img
 
 # Programs and libraries
-PROGS=		foo2zjs zjsdecode arm2hpdl foo2hp foo2xqx xqxdecode
+PROGS=		foo2zjs zjsdecode arm2hpdl foo2hp foo2xqx xqxdecode foo2zjs-dither
 PROGS+=		foo2lava lavadecode foo2qpdl qpdldecode opldecode
 PROGS+=		foo2oak oakdecode
 PROGS+=		foo2slx slxdecode
@@ -479,6 +479,9 @@ foo2xqx: foo2xqx.o
 
 foo2zjs: foo2zjs.o
 	$(CC) $(CFLAGS) -o $@ foo2zjs.o $(LIBJBG) $(LDFLAGS)
+
+foo2zjs-dither: foo2zjs-dither.o
+	$(CC) $(CFLAGS) -o $@ foo2zjs-dither.o -lm $(LDFLAGS)
 
 
 foo2ddst-wrapper: foo2ddst-wrapper.in Makefile

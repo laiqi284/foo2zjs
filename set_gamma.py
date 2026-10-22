@@ -24,23 +24,11 @@ CRD_DIR = os.path.join(SCRIPT_DIR, "crd", "zjs")
 STATE_FILE = os.path.join(CRD_DIR, ".gamma_state.json")
 
 SCREENS = {
-    "honeycomb": {
-        "name": "Honeycomb Anti-Box 2x2 (stoch_honeycomb)",
-        "ps_repo": os.path.join(CRD_DIR, "stoch_honeycomb.ps"),
-        "ps_tmp": "/tmp/foo2zjs_stoch_honeycomb.ps",
-        "cache": os.path.join(CRD_DIR, ".ranks_honeycomb.npz"),
-        "dict_name": "Honeycomb2x2FM",
-        "default_gamma": 1.08,
-        "halftone_opt": "stoch_honeycomb",
-    },
-    "diamond": {
-        "name": "Diamond Clustered 2x2 (stoch_diamond)",
-        "ps_repo": os.path.join(CRD_DIR, "stoch_diamond.ps"),
-        "ps_tmp": "/tmp/foo2zjs_stoch_diamond.ps",
-        "cache": os.path.join(CRD_DIR, ".ranks_diamond.npz"),
-        "dict_name": "DiamondClusteredFM",
-        "default_gamma": 1.08,
-        "halftone_opt": "stoch_diamond",
+    "micro": {
+        "name": "HP Official-Style 1x1 Micro-Dots (micro / 仿制1*1)",
+        "config_file": "/var/tmp/foo2zjs/gamma_stream.conf",
+        "default_gamma": 1.0,
+        "halftone_opt": "micro",
     },
     "stoch2": {
         "name": "Classic 2x2 Clustered (stoch2)",
@@ -51,24 +39,6 @@ SCREENS = {
         "default_gamma": 0.85,
         "halftone_opt": "stoch2",
     },
-    "grain": {
-        "name": "Organic Film Grain (stoch_grain)",
-        "ps_repo": os.path.join(CRD_DIR, "stoch_grain.ps"),
-        "ps_tmp": "/tmp/foo2zjs_stoch_grain.ps",
-        "cache": os.path.join(CRD_DIR, ".ranks_grain.npz"),
-        "dict_name": "OrganicGrainFM",
-        "default_gamma": 1.08,
-        "halftone_opt": "stoch_grain",
-    },
-    "2v2": {
-        "name": "Progressive 2x2 Clustered (stoch2v2)",
-        "ps_repo": os.path.join(CRD_DIR, "stoch2v2.ps"),
-        "ps_tmp": "/tmp/foo2zjs_stoch2v2.ps",
-        "cache": os.path.join(CRD_DIR, ".ranks_stoch2v2.npz"),
-        "dict_name": "GreenNoiseFMv2",
-        "default_gamma": 1.08,
-        "halftone_opt": "stoch2v2",
-    },
 }
 
 def load_state():
@@ -78,7 +48,7 @@ def load_state():
                 return json.load(f)
         except Exception:
             pass
-    return {"honeycomb": 1.08, "diamond": 1.08, "stoch2": 0.85, "grain": 1.08, "2v2": 1.08}
+    return {"micro": 1.0, "stoch2": 0.85}
 
 def save_state(state):
     os.makedirs(CRD_DIR, exist_ok=True)
@@ -309,6 +279,22 @@ def apply_gamma_2v2(gamma):
     )
     deploy_ps(cfg, ps_text)
 
+def apply_gamma_stream(gamma):
+    cfg_path = "/var/tmp/foo2zjs/gamma_stream.conf"
+    try:
+        os.makedirs("/var/tmp/foo2zjs", exist_ok=True)
+        with open(cfg_path, "w") as f:
+            f.write(f"{gamma:.2f}\n")
+        os.chmod(cfg_path, 0o666)
+    except Exception:
+        pass
+    try:
+        with open("/tmp/foo2zjs_gamma_stream.conf", "w") as f:
+            f.write(f"{gamma:.2f}\n")
+        os.chmod("/tmp/foo2zjs_gamma_stream.conf", 0o666)
+    except Exception:
+        pass
+
 def deploy_ps(cfg, ps_text):
     # 1. Write to repository crd/zjs
     with open(cfg["ps_repo"], "w") as f:
@@ -383,14 +369,13 @@ def show_status():
     print("  • Gamma = 1.08 : 反网点扩大补偿、中调通透真实、高反光 3D 色彩（实测推荐）")
     print("-" * 68)
     print("使用方法:")
-    print("  set-gamma <gamma> [目标方案: honeycomb | diamond | stoch2 | grain | 2v2 | all]")
+    print("  set-gamma <gamma> [目标方案: micro | stoch2 | all]")
     print("")
     print("示例:")
-    print("  set-gamma 0.85            # 直接调节当前默认挂网为 Gamma 0.85")
-    print("  set-gamma 1.08 honeycomb  # 将蜂巢无格 2x2 (stoch_honeycomb) 设为 Gamma 1.08")
-    print("  set-gamma 1.0 stoch2      # 将经典 2x2 (stoch2) 设为 Gamma 1.0")
-    print("  set-gamma 0.85 stoch2     # 将经典 2x2 (stoch2) 恢复默认 0.85")
-    print("  set-gamma 0.85 all        # 同时将全部方案统一设为 Gamma 0.85")
+    print("  set-gamma 1.0             # 直接调节当前默认挂网为 Gamma 1.0")
+    print("  set-gamma 1.0 micro       # 将仿制 1x1 微点 (micro) 设为 Gamma 1.0")
+    print("  set-gamma 0.85 stoch2     # 将经典 2x2 (stoch2) 设为默认 0.85")
+    print("  set-gamma 1.0 all         # 同时将两者统一设为 Gamma 1.0")
     print("=" * 68)
 
 def main():
@@ -406,61 +391,42 @@ def main():
             sys.exit(1)
     except ValueError:
         print(f"错误: 无法解析 Gamma 参数 '{sys.argv[1]}'")
-        print("用法示例: set-gamma 0.85")
+        print("用法示例: set-gamma 1.0")
         sys.exit(1)
 
     target = None
     if len(sys.argv) >= 3:
         raw_target = sys.argv[2].lower()
-        if raw_target in ("stoch_honeycomb", "honeycomb", "hex2", "hex", "anti_box"):
-            target = "honeycomb"
-        elif raw_target in ("stoch_diamond", "diamond", "dia"):
-            target = "diamond"
-        elif raw_target in ("stoch2", "2x2", "classic", "legacy", "old2x2"):
+        if raw_target in ("micro", "1x1", "hp1x1", "stream"):
+            target = "micro"
+        elif raw_target in ("stoch2", "2x2", "classic", "legacy"):
             target = "stoch2"
-        elif raw_target in ("stoch_grain", "grain", "film", "organic"):
-            target = "grain"
-        elif raw_target in ("stoch2v2", "stoch2_v2", "v2", "2v2", "2x2v2"):
-            target = "2v2"
         elif raw_target == "all":
             target = "all"
         else:
-            print(f"错误: 未知目标方案 '{raw_target}'，可选: honeycomb, diamond, stoch2, grain, 2v2, all")
+            print(f"错误: 未知目标方案 '{raw_target}'，可选: micro, stoch2, all")
             sys.exit(1)
     else:
-        # Intelligently default to active CUPS halftone
         active_ht = get_cups_active_halftone()
-        if active_ht in ("stoch_honeycomb", "honeycomb"):
-            target = "honeycomb"
-        elif active_ht in ("stoch2", "2x2"):
+        if active_ht in ("stoch2", "2x2"):
             target = "stoch2"
-        elif active_ht == "stoch_grain":
-            target = "grain"
-        elif active_ht == "stoch2v2":
-            target = "2v2"
         else:
-            target = "honeycomb"
+            target = "micro"
 
     state = load_state()
 
     targets_to_update = []
     if target == "all":
-        targets_to_update = ["honeycomb", "diamond", "stoch2", "grain", "2v2"]
+        targets_to_update = ["micro", "stoch2"]
     elif target in SCREENS:
         targets_to_update = [target]
 
     print(f"\n>> 正在应用 Gamma = \033[1;32m{gamma:.2f}\033[0m ...")
     for t in targets_to_update:
-        if t == "honeycomb":
-            apply_gamma_honeycomb(gamma)
-        elif t == "diamond":
-            apply_gamma_diamond(gamma)
+        if t == "micro":
+            apply_gamma_stream(gamma)
         elif t == "stoch2":
             apply_gamma_stoch2(gamma)
-        elif t == "grain":
-            apply_gamma_grain(gamma)
-        elif t == "2v2":
-            apply_gamma_2v2(gamma)
         state[t] = gamma
         print(f"  ✓ 已更新 {SCREENS[t]['name']} (Gamma = {gamma:.2f})")
 
