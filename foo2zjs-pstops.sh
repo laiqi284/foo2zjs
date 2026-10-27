@@ -237,6 +237,10 @@ else
 		} if\
 	    } if\
 	} if\
+	{ } setblackgeneration\
+	{ } setundercolorremoval\
+	userdict /setblackgeneration { pop } bind put\
+	userdict /setundercolorremoval { pop } bind put\
 	userdict /settransfer { pop } bind put\
 	userdict /setcolortransfer { pop pop pop pop } bind put\
     '

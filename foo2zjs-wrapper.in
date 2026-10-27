@@ -738,22 +738,29 @@ create_crd() {
 	    ;;
 	esac
 
-	PSTOPS_OPTS="$PSTOPS_OPTS -c"
-	cat > $ICCTMP.usecie.ps <<-EOF
-		%!PS-Adobe-3.0
-		<</UseCIEColor true>>setpagedevice
-	EOF
-	if [ "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 ]; then
-	    echo "<< /UseWTS false >> setuserparams" >> $ICCTMP.usecie.ps
-	elif [ "$QUALITY" = wts ]; then
-	    echo "<< /UseWTS true >> setuserparams" >> $ICCTMP.usecie.ps
-	fi
-	cat > $ICCTMP.selcrd.ps <<-EOF
-		/Current /ColorRendering findresource setcolorrendering
-	EOF
 	case "$GAMMAFILE" in
-	none | none.icm | */none.icm) GAMMAFILE="$ICCTMP.usecie.ps";;
-	*)	GAMMAFILE="$ICCTMP.usecie.ps $ICCTMP.crd.ps $ICCTMP.selcrd.ps";;
+	none | none.icm | */none.icm)
+	    # Pure Raw CMYK / No ICM: disable UseCIEColor, enforce 100% GCR/UCR in PostScript
+	    printf "%%!PS-Adobe-3.0\n<</UseCIEColor false>>setpagedevice\n{ } setblackgeneration\n{ } setundercolorremoval\n" > $ICCTMP.usecie.ps
+	    if [ "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 ]; then
+		echo "<< /UseWTS false >> setuserparams" >> $ICCTMP.usecie.ps
+	    elif [ "$QUALITY" = wts ]; then
+		echo "<< /UseWTS true >> setuserparams" >> $ICCTMP.usecie.ps
+	    fi
+	    GAMMAFILE="$ICCTMP.usecie.ps"
+	    GSOPTS="-dUseFastColor=true $GSOPTS"
+	    ;;
+	*)
+	    PSTOPS_OPTS="$PSTOPS_OPTS -c"
+	    printf "%%!PS-Adobe-3.0\n<</UseCIEColor true>>setpagedevice\n" > $ICCTMP.usecie.ps
+	    if [ "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 ]; then
+		echo "<< /UseWTS false >> setuserparams" >> $ICCTMP.usecie.ps
+	    elif [ "$QUALITY" = wts ]; then
+		echo "<< /UseWTS true >> setuserparams" >> $ICCTMP.usecie.ps
+	    fi
+	    printf "/Current /ColorRendering findresource setcolorrendering\n" > $ICCTMP.selcrd.ps
+	    GAMMAFILE="$ICCTMP.usecie.ps $ICCTMP.crd.ps $ICCTMP.selcrd.ps"
+	    ;;
 	esac
     else
 	GAMMAFILE=
