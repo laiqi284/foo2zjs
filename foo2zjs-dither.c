@@ -81,64 +81,6 @@ void init_gamma_lut_cmyk(double gc, double gm, double gy, double gk) {
     }
 }
 
-// Pure K Neutral Gray and Saturated Color De-contamination Pass
-static inline void clean_pure_colors_and_gray(unsigned char *row, int width) {
-    for (int x = 0; x < width; x++) {
-        int c = row[x * 4 + 0];
-        int m = row[x * 4 + 1];
-        int y = row[x * 4 + 2];
-        int k = row[x * 4 + 3];
-
-        // 1. Neutral Gray check: C, M, Y are balanced within tolerance
-        int diff_cm = abs(c - m);
-        int diff_my = abs(m - y);
-        int diff_cy = abs(c - y);
-        if (diff_cm <= 4 && diff_my <= 4 && diff_cy <= 4) {
-            int gray = (c + m + y) / 3;
-            if (gray > 0) {
-                int new_k = k + gray;
-                row[x * 4 + 3] = (new_k > 255) ? 255 : (unsigned char)new_k;
-                row[x * 4 + 0] = 0;
-                row[x * 4 + 1] = 0;
-                row[x * 4 + 2] = 0;
-            }
-            continue;
-        }
-
-        // 2. Pure / saturated color protection: eliminate opposite-toner ICC artifacts
-        // Yellow: dominant Y, low C, low M
-        if (y > 90 && m < 35 && c < 35) {
-            row[x * 4 + 0] = 0; // eliminate dirty cyan
-            row[x * 4 + 3] = 0; // eliminate dirty black
-        }
-        // Cyan: dominant C, low M, low Y
-        else if (c > 90 && m < 35 && y < 45) {
-            row[x * 4 + 2] = 0; // eliminate dirty yellow
-            row[x * 4 + 3] = 0;
-        }
-        // Magenta: dominant M, low C, low Y
-        else if (m > 90 && y < 35 && c < 35) {
-            row[x * 4 + 0] = 0;
-            row[x * 4 + 3] = 0;
-        }
-        // Red (M+Y): low C
-        else if (m > 90 && y > 90 && c < 35) {
-            row[x * 4 + 0] = 0;
-            row[x * 4 + 3] = 0;
-        }
-        // Blue (C+M): low Y
-        else if (c > 90 && m > 90 && y < 35) {
-            row[x * 4 + 2] = 0;
-            row[x * 4 + 3] = 0;
-        }
-        // Green (C+Y): low M
-        else if (c > 90 && y > 90 && m < 35) {
-            row[x * 4 + 1] = 0;
-            row[x * 4 + 3] = 0;
-        }
-    }
-}
-
 // 1x1 Micro-Dot Streaming Error Diffusion (HP Official Style, Pure K, Zero Grid)
 int process_pam_page_1x1(FILE *in, FILE *out, int width, int height) {
     int rawbpl = (width + 1) / 2;
@@ -166,7 +108,6 @@ int process_pam_page_1x1(FILE *in, FILE *out, int width, int height) {
 
     for (int y = 0; y < height; y++) {
         if (fread(row, 4, width, in) != (size_t)width) break;
-        clean_pure_colors_and_gray(row, width);
         memset(out_row, 0, rawbpl);
 
         int forward = (y % 2 == 0);
@@ -276,14 +217,12 @@ int process_pam_page_2x2(FILE *in, FILE *out, int width, int height) {
     int cur_y = 0;
     for (int cy = 0; cy < ch; cy++) {
         if (fread(row0, 4, width, in) != (size_t)width) break;
-        clean_pure_colors_and_gray(row0, width);
         cur_y++;
 
         int has_row1 = 0;
         if (cur_y < height) {
             if (fread(row1, 4, width, in) == (size_t)width) {
                 has_row1 = 1;
-                clean_pure_colors_and_gray(row1, width);
                 cur_y++;
             } else {
                 memcpy(row1, row0, width * 4);

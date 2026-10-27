@@ -740,15 +740,14 @@ create_crd() {
 
 	case "$GAMMAFILE" in
 	none | none.icm | */none.icm)
-	    # Pure Raw CMYK / No ICM: disable UseCIEColor, enforce 100% GCR/UCR in PostScript
-	    printf "%%!PS-Adobe-3.0\n<</UseCIEColor false>>setpagedevice\n{ } setblackgeneration\n{ } setundercolorremoval\n" > $ICCTMP.usecie.ps
+	    # Pure Raw CMYK / No ICM: disable UseCIEColor to preserve native CMYK and Gray
+	    printf "%%!PS-Adobe-3.0\n<</UseCIEColor false>>setpagedevice\n" > $ICCTMP.usecie.ps
 	    if [ "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 ]; then
 		echo "<< /UseWTS false >> setuserparams" >> $ICCTMP.usecie.ps
 	    elif [ "$QUALITY" = wts ]; then
 		echo "<< /UseWTS true >> setuserparams" >> $ICCTMP.usecie.ps
 	    fi
 	    GAMMAFILE="$ICCTMP.usecie.ps"
-	    GSOPTS="-dUseFastColor=true $GSOPTS"
 	    ;;
 	*)
 	    PSTOPS_OPTS="$PSTOPS_OPTS -c"
