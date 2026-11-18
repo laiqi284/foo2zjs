@@ -259,6 +259,18 @@
 *FoomaticRIPOptionSetting InputSlot=Manual: "-s4 "
 *CloseUI: *InputSlot
 
+*OpenUI *Duplex/Duplex Printing: PickOne
+*FoomaticRIPOption Duplex: enum CmdLine A
+*OrderDependency: 210 AnySetup *Duplex
+*DefaultDuplex: None
+*Duplex None/Off: "%% FoomaticRIPOptionSetting: Duplex=None"
+*FoomaticRIPOptionSetting Duplex=None: "-d1 "
+*Duplex DuplexNoTumble/Manual Long Edge (Standard): "%% FoomaticRIPOptionSetting: Duplex=DuplexNoTumble"
+*FoomaticRIPOptionSetting Duplex=DuplexNoTumble: "-d4 "
+*Duplex DuplexTumble/Manual Short Edge (Flip): "%% FoomaticRIPOptionSetting: Duplex=DuplexTumble"
+*FoomaticRIPOptionSetting Duplex=DuplexTumble: "-d5 "
+*CloseUI: *Duplex
+
 *OpenUI *MediaType/Media Type: PickOne
 *FoomaticRIPOption MediaType: enum CmdLine A
 *OrderDependency: 150 AnySetup *MediaType
