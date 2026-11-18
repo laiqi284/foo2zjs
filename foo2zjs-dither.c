@@ -136,13 +136,13 @@ int process_pam_page_1x1(FILE *in, FILE *out, int width, int height) {
                     int x_next = x + step_x;
                     // Smooth highlight micro-pair blending:
                     // 0-10% (v<=40): 75% micro-pairs + 25% 1x1 dots;
-                    // 10-30% (40<v<80): linearly taper micro-pairs from 75% down to 0%;
-                    // >=30% (v>=80): 100% pure 1x1 micro-dots.
+                    // 10-18% (40<v<60): linearly taper micro-pairs from 75% down to 0%;
+                    // >=20% (v>=60): 100% pure 1x1 micro-dots (clean 20-30% progression).
                     int pair_prob = 0;
                     if (v <= 40) {
                         pair_prob = 75;
-                    } else if (v < 80) {
-                        pair_prob = (75 * (80 - v)) / 40;
+                    } else if (v < 60) {
+                        pair_prob = (75 * (60 - v)) / 20;
                     }
                     rng = (1103515245 * rng + 12345) & 0x7fffffff;
                     if (pair_prob > 0 && ((int)(rng % 100) < pair_prob) && x_next >= 0 && x_next < width) {
