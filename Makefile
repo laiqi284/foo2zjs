@@ -60,7 +60,7 @@ install: all
 	gzip -cn -9 PPD/HP-LaserJet_Pro_CP1025nw.ppd > "$(DESTDIR)$(PPDDIR)/HP-LaserJet_Pro_CP1025nw.ppd.gz"
 	chmod 0644 "$(DESTDIR)$(PPDDIR)/HP-LaserJet_Pro_CP1025nw.ppd.gz"
 	ln -sf ../../ppd/foo2zjs/HP-LaserJet_Pro_CP1025nw.ppd.gz "$(DESTDIR)$(MODELDIR)/HP-LaserJet_Pro_CP1025nw.ppd.gz"
-	install -m 0644 README.md COPYING "$(DESTDIR)$(DOCDIR)/"
+	install -m 0644 README.md CALIBRATION.md COPYING "$(DESTDIR)$(DOCDIR)/"
 
 deb: all
 	rm -rf .deb_stage

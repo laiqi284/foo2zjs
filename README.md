@@ -25,3 +25,11 @@ sudo make install
 # Or build a .deb package:
 make deb
 ```
+
+## Color Calibration / 校色指南
+
+无需分光光度计，仅凭手机拍照即可重新标定 C/M/Y/K 四通道 LUT 与纯 K 中性灰 ICC，详细步骤见 [CALIBRATION.md](CALIBRATION.md)：
+
+- [`tools/gen_calib_target.py`](tools/gen_calib_target.py) — 生成 40 px 宏观条纹自校准测试靶（`PAM` + 布局 `JSON` + 线性 `linear_lut.dat`）
+- [`tools/solve_lut_from_photo.py`](tools/solve_lut_from_photo.py) — 对手机原图做透视矫正、局部平场、同页参考反演与 CIE $L^*$ 求解，更新 `crd/zjs/lut_cmyk_*.dat` 与 `embedded_lut*.h`
+- [`tools/gen_purek_cmyk_icc.py`](tools/gen_purek_cmyk_icc.py) — 生成中性轴 100% 纯 K GCR 的 `crd/zjs/cp1025_purek_cmyk.icc`
