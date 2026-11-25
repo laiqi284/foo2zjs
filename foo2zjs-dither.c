@@ -250,11 +250,11 @@ int process_pam_page_pwm2(FILE *in, FILE *out, int width, int height) {
                 int total = (v << 4) + err_curr[c][x + 1];
 
                 rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
-                int jitter1 = (int)((rng % 49) - 24) << 4;
+                int jitter1 = (int)((rng % 113) - 56) << 4;
                 int th1 = (96 << 4) + jitter1;
 
                 rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
-                int jitter2 = (int)((rng % 33) - 16) << 4;
+                int jitter2 = (int)((rng % 49) - 24) << 4;
                 int th2 = (224 << 4) + jitter2;
 
                 int target = 0;
@@ -265,20 +265,27 @@ int process_pam_page_pwm2(FILE *in, FILE *out, int width, int height) {
                     out_row[x] |= full_mask;
                     target = lvl_full;
                 } else if (total >= th1) {
-                    out_row[x] |= hi_mask;
                     int x_next = x + step_x;
                     int pair_prob = 0;
-                    if (v <= 24) {
-                        pair_prob = 65;
+                    if (v <= 28) {
+                        pair_prob = 85;
                     } else if (v < 72) {
-                        pair_prob = (65 * (72 - v)) / 48;
+                        pair_prob = (85 * (72 - v)) / 44;
                     }
                     rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
                     if (pair_prob > 0 && ((int)(rng % 100) < pair_prob) &&
                         x_next >= 0 && x_next < width && (out_row[x_next] & hi_mask) == 0) {
-                        out_row[x_next] |= hi_mask;
-                        target = lvl_mid * 2;
+                        // Continuous 3-subpixel pulse (11 | 10 = 1 1 1 0 in left-to-right laser scan order)
+                        if (forward) {
+                            out_row[x] |= full_mask;
+                            out_row[x_next] |= hi_mask;
+                        } else {
+                            out_row[x] |= hi_mask;
+                            out_row[x_next] |= full_mask;
+                        }
+                        target = lvl_full + lvl_mid;
                     } else {
+                        out_row[x] |= hi_mask;
                         target = lvl_mid;
                     }
                 }
@@ -638,11 +645,11 @@ int process_pgm_page_pwm2(FILE *in, FILE *out, int width, int height) {
             int total = (v << 4) + err_curr[x + 1];
 
             rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
-            int jitter1 = (int)((rng % 49) - 24) << 4;
+            int jitter1 = (int)((rng % 113) - 56) << 4;
             int th1 = (96 << 4) + jitter1;
 
             rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
-            int jitter2 = (int)((rng % 33) - 16) << 4;
+            int jitter2 = (int)((rng % 49) - 24) << 4;
             int th2 = (224 << 4) + jitter2;
 
             int target = 0;
@@ -652,20 +659,27 @@ int process_pgm_page_pwm2(FILE *in, FILE *out, int width, int height) {
                 code_row[x] = 3;
                 target = lvl_full;
             } else if (total >= th1) {
-                code_row[x] = 2;
                 int x_next = x + step_x;
                 int pair_prob = 0;
-                if (v <= 24) {
-                    pair_prob = 65;
+                if (v <= 28) {
+                    pair_prob = 85;
                 } else if (v < 72) {
-                    pair_prob = (65 * (72 - v)) / 48;
+                    pair_prob = (85 * (72 - v)) / 44;
                 }
                 rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
                 if (pair_prob > 0 && ((int)(rng % 100) < pair_prob) &&
                     x_next >= 0 && x_next < width && code_row[x_next] == 0) {
-                    code_row[x_next] = 2;
-                    target = lvl_mid * 2;
+                    // Continuous 3-subpixel pulse (11 | 10 = 1 1 1 0 in left-to-right laser scan order)
+                    if (forward) {
+                        code_row[x] = 3;
+                        code_row[x_next] = 2;
+                    } else {
+                        code_row[x] = 2;
+                        code_row[x_next] = 3;
+                    }
+                    target = lvl_full + lvl_mid;
                 } else {
+                    code_row[x] = 2;
                     target = lvl_mid;
                 }
             }
