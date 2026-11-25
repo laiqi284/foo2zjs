@@ -825,6 +825,13 @@ case "$RES" in
     2400x600)	SCREEN=screen2400.ps;;
 esac
 
+PUREK_ICC=""
+if [ -r /var/tmp/foo2zjs/crd/cp1025_purek_cmyk.icc ]; then
+    PUREK_ICC=/var/tmp/foo2zjs/crd/cp1025_purek_cmyk.icc
+elif [ -r "$SHARE/crd/zjs/cp1025_purek_cmyk.icc" ]; then
+    PUREK_ICC="$SHARE/crd/zjs/cp1025_purek_cmyk.icc"
+fi
+
 case "$COLORMODE" in
 0|"")
     # Monochrome
@@ -836,6 +843,13 @@ gs9)
     case "$GAMMAFILE" in
     none|none.icm|none.icc)
 	GAMMAFILE=
+	if [ -n "$PUREK_ICC" ]; then
+	    case "$GSVER" in
+	    9.*|10.*|[1-9][0-9].*)
+		GSOPTS="$GSOPTS -sDefaultCMYKProfile=$PUREK_ICC -sOutputICCProfile=$PUREK_ICC"
+		;;
+	    esac
+	fi
 	;;
     *)
 	if [ -r "$GAMMAFILE" ]; then
@@ -864,6 +878,13 @@ gs9)
     case "$GAMMAFILE" in
     none | none.icm | */none.icm)
 	create_crd
+	if [ -n "$PUREK_ICC" ]; then
+	    case "$GSVER" in
+	    9.*|10.*|[1-9][0-9].*)
+		GSOPTS="$GSOPTS -sDefaultCMYKProfile=$PUREK_ICC -sOutputICCProfile=$PUREK_ICC"
+		;;
+	    esac
+	fi
 	;;
     *.icm|*.ICM|*.icc|*.ICC)
 	#
@@ -991,7 +1012,7 @@ fi
 #	intermingled with the printer drivers output, resulting in
 #	corrupted image data.
 #
-GS="$GSBIN -q -dBATCH -dSAFER --permit-file-read=/var/tmp/foo2zjs/crd/ --permit-file-read=/tmp/ -dQUIET -dNOPAUSE"
+GS="$GSBIN -q -dBATCH -dSAFER --permit-file-read=/var/tmp/foo2zjs/crd/ --permit-file-read=$SHARE/crd/zjs/ --permit-file-read=/tmp/ -dQUIET -dNOPAUSE"
 
 PSTOPSBIN=foo2zjs-pstops
 if [ -x /var/tmp/foo2zjs/foo2zjs-pstops ]; then
