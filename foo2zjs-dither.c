@@ -31,8 +31,10 @@
 #define DEFAULT_GAMMA 1.0
 #define CONFIG_FILE "/var/tmp/foo2zjs/gamma_stream.conf"
 #define DEFAULT_LUT_FILE "/var/tmp/foo2zjs/lut_cmyk_1x1.dat"
+#define DEFAULT_PWM2_LUT_FILE "/var/tmp/foo2zjs/lut_cmyk_pwm2.dat"
 
 #include "embedded_lut.h"
+#include "embedded_lut_pwm2.h"
 
 static unsigned char gamma_lut_1x1[4][256];
 static unsigned char gamma_lut_2x2[4][256];
@@ -64,7 +66,7 @@ void init_gamma_lut_cmyk(double gc, double gm, double gy, double gk) {
     for (int c = 0; c < 4; c++) {
         double g = (gammas[c] <= 0.05) ? 1.0 : gammas[c];
         for (int i = 0; i < 256; i++) {
-            int base_val = default_calibrated_lut[c][i];
+            int base_val = (pwm_bpp == 2) ? default_calibrated_lut_pwm2[c][i] : default_calibrated_lut[c][i];
             if (fabs(g - 1.0) > 0.001) {
                 double norm = (double)base_val / 255.0;
                 double corrected = pow(norm, g);
@@ -594,20 +596,23 @@ int main(int argc, char *argv[]) {
     }
 
     // Default LUT handling:
-    // Auto-load calibrated LUT for 1x1 (mode 1 and top half of mode 3 split)
+    // Auto-load calibrated LUT for 1x1 / PWM2 (mode 1 and top half of mode 3 split)
     // Mode 2 (2x2) always stays pure linear reference baseline.
     if (!lut_explicitly_set && (dither_mode == 1 || dither_mode == 3)) {
-        if (access(DEFAULT_LUT_FILE, R_OK) == 0) {
-            lut_path = DEFAULT_LUT_FILE;
+        const char *default_lut = (pwm_bpp == 2) ? DEFAULT_PWM2_LUT_FILE : DEFAULT_LUT_FILE;
+        if (access(default_lut, R_OK) == 0) {
+            lut_path = default_lut;
         }
     }
 
     init_gamma_lut_cmyk(gc, gm, gy, gk);
 
     if (lut_path && load_custom_lut(lut_path)) {
-        fprintf(stderr, "foo2zjs-dither: Loaded custom 1x1 CMYK LUT from %s\n", lut_path);
+        fprintf(stderr, "foo2zjs-dither: Loaded custom %s CMYK LUT from %s\n",
+                (pwm_bpp == 2) ? "PWM2" : "1x1", lut_path);
     } else {
-        fprintf(stderr, "foo2zjs-dither: Using built-in calibrated 1x1 CMYK LUT (Job 216)\n");
+        fprintf(stderr, "foo2zjs-dither: Using built-in calibrated %s CMYK LUT\n",
+                (pwm_bpp == 2) ? "PWM2" : "1x1");
     }
 
     // Process all pages until stdin EOF
