@@ -38,6 +38,7 @@ static unsigned char gamma_lut_1x1[4][256];
 static unsigned char gamma_lut_2x2[4][256];
 static int clean_black = 1;
 static int dither_mode = 1; // Default to 1x1 Micro-Dots (HP style)
+static int pwm_bpp = 1;     // 1: 600x600 1-bit, 2: 1200x600 2-bit {00,10,11} PWM
 
 int load_custom_lut(const char *lut_path) {
     if (!lut_path) return 0;
@@ -185,6 +186,129 @@ int process_pam_page_1x1(FILE *in, FILE *out, int width, int height) {
 
         for (int c = 0; c < 4; c++) {
             memset(err_curr[c], 0, (width + 3) * sizeof(int));
+            int *tmp = err_curr[c];
+            err_curr[c] = err_next[c];
+            err_next[c] = tmp;
+        }
+    }
+
+    for (int c = 0; c < 4; c++) {
+        free(err_curr[c]);
+        free(err_next[c]);
+    }
+    free(row);
+    free(out_row);
+    return 0;
+}
+
+// True 3-Level Hardware PWM ({00, 10, 11}) Error Diffusion for 1200x600dpi (ZJI_VIDEO_BPP = 2)
+int process_pam_page_pwm2(FILE *in, FILE *out, int width, int height) {
+    unsigned char *row = malloc((size_t)width * 4);
+    unsigned char *out_row = malloc((size_t)width);
+    if (!row || !out_row) {
+        fprintf(stderr, "foo2zjs-dither: Memory allocation error\n");
+        free(row);
+        free(out_row);
+        return -1;
+    }
+
+    int *err_curr[4], *err_next[4];
+    for (int c = 0; c < 4; c++) {
+        err_curr[c] = calloc((size_t)width + 3, sizeof(int));
+        err_next[c] = calloc((size_t)width + 3, sizeof(int));
+        if (!err_curr[c] || !err_next[c]) {
+            fprintf(stderr, "foo2zjs-dither: Memory allocation error for error buffers\n");
+            for (int k = 0; k < 4; k++) { free(err_curr[k]); free(err_next[k]); }
+            free(row);
+            free(out_row);
+            return -1;
+        }
+    }
+
+    const int lvl_mid = 192 << 4; // 3072
+    const int lvl_full = 255 << 4; // 4080
+    unsigned int rng = 123456789u;
+
+    for (int y = 0; y < height; y++) {
+        if (fread(row, 4, (size_t)width, in) != (size_t)width) break;
+        memset(out_row, 0, (size_t)width);
+
+        int forward = (y % 2 == 0);
+        int start_x = forward ? 0 : (width - 1);
+        int end_x = forward ? width : -1;
+        int step_x = forward ? 1 : -1;
+
+        for (int c = 0; c < 4; c++) {
+            int bit_shift = (c == 0) ? 3 : ((c == 1) ? 2 : ((c == 2) ? 1 : 0));
+            unsigned char hi_mask = (unsigned char)(1 << (bit_shift + 4));
+            unsigned char full_mask = (unsigned char)(hi_mask | (1 << bit_shift));
+
+            for (int x = start_x; x != end_x; x += step_x) {
+                int v = gamma_lut_1x1[c][row[x * 4 + c]];
+                int total = (v << 4) + err_curr[c][x + 1];
+
+                rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+                int jitter1 = (int)((rng % 49) - 24) << 4;
+                int th1 = (96 << 4) + jitter1;
+
+                rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+                int jitter2 = (int)((rng % 33) - 16) << 4;
+                int th2 = (224 << 4) + jitter2;
+
+                int target = 0;
+                if ((out_row[x] & hi_mask) != 0) {
+                    // Already set as code 10 from preceding pixel's highlight micro-pair
+                    target = 0;
+                } else if (total >= th2) {
+                    out_row[x] |= full_mask;
+                    target = lvl_full;
+                } else if (total >= th1) {
+                    out_row[x] |= hi_mask;
+                    int x_next = x + step_x;
+                    int pair_prob = 0;
+                    if (v <= 24) {
+                        pair_prob = 65;
+                    } else if (v < 72) {
+                        pair_prob = (65 * (72 - v)) / 48;
+                    }
+                    rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+                    if (pair_prob > 0 && ((int)(rng % 100) < pair_prob) &&
+                        x_next >= 0 && x_next < width && (out_row[x_next] & hi_mask) == 0) {
+                        out_row[x_next] |= hi_mask;
+                        target = lvl_mid * 2;
+                    } else {
+                        target = lvl_mid;
+                    }
+                }
+                int err = total - target;
+
+                if (forward) {
+                    err_curr[c][x + 2] += (err * 7) / 16;
+                    err_next[c][x + 0] += (err * 3) / 16;
+                    err_next[c][x + 1] += (err * 5) / 16;
+                    err_next[c][x + 2] += (err * 1) / 16;
+                } else {
+                    err_curr[c][x + 0] += (err * 7) / 16;
+                    err_next[c][x + 2] += (err * 3) / 16;
+                    err_next[c][x + 1] += (err * 5) / 16;
+                    err_next[c][x + 0] += (err * 1) / 16;
+                }
+            }
+        }
+
+        // Whole-pixel BlackClears: prevent foo2zjs -B from turning a CMY code 11 into dead code 01
+        if (clean_black) {
+            for (int x = 0; x < width; x++) {
+                if ((out_row[x] & 0x11) != 0) {
+                    out_row[x] &= 0x11;
+                }
+            }
+        }
+
+        if (fwrite(out_row, 1, (size_t)width, out) != (size_t)width) break;
+
+        for (int c = 0; c < 4; c++) {
+            memset(err_curr[c], 0, ((size_t)width + 3) * sizeof(int));
             int *tmp = err_curr[c];
             err_curr[c] = err_next[c];
             err_next[c] = tmp;
@@ -379,6 +503,9 @@ int process_pam_page(FILE *in, FILE *out) {
     }
 
     if (dither_mode == 1) {
+        if (pwm_bpp == 2) {
+            return process_pam_page_pwm2(in, out, width, height);
+        }
         return process_pam_page_1x1(in, out, width, height);
     } else if (dither_mode == 3) {
         return process_pam_page_split(in, out, width, height);
@@ -409,11 +536,15 @@ int main(int argc, char *argv[]) {
 
     // Parse command line options
     int opt;
-    while ((opt = getopt(argc, argv, "m:g:c:l:B:h")) != -1) {
+    while ((opt = getopt(argc, argv, "m:p:g:c:l:B:h")) != -1) {
         switch (opt) {
             case 'm':
                 dither_mode = atoi(optarg);
                 if (dither_mode < 1 || dither_mode > 3) dither_mode = 1;
+                break;
+            case 'p':
+                pwm_bpp = atoi(optarg);
+                if (pwm_bpp != 2) pwm_bpp = 1;
                 break;
             case 'B':
                 clean_black = atoi(optarg);
@@ -451,10 +582,11 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 'h':
-                fprintf(stderr, "Usage: %s [-m 1|2|3] [-B 0|1] [-l lut_file|none] [-g gamma|gc,gm,gy,gk] [-c config_file]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-m 1|2|3] [-p 1|2] [-B 0|1] [-l lut_file|none] [-g gamma|gc,gm,gy,gk] [-c config_file]\n", argv[0]);
                 fprintf(stderr, "  -m 1: 1x1 Micro-Dots (HP style ultra-fine, default)\n");
                 fprintf(stderr, "  -m 2: 2x2 Clustered Dots (honeycomb vivid)\n");
                 fprintf(stderr, "  -m 3: Split Comparison (Top half 1x1, Bottom half 2x2)\n");
+                fprintf(stderr, "  -p 1|2: 1=600x600 1-bit (default), 2=1200x600 2-bit {00,10,11} PWM\n");
                 fprintf(stderr, "  -B 1: Pure Black enforcement (BlackClears, default)\n");
                 fprintf(stderr, "  -l file: CMYK LUT file (or 'none' for pure linear)\n");
                 return 0;

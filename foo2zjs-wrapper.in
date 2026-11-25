@@ -937,8 +937,17 @@ elif [ "$COLOR" != "" -a "$QUALITY" = as ]; then
     PSTOPS_OPTS="$PSTOPS_OPTS -9 -a"
 fi
 
+GS_RES="$RES"
+GS_DIM="$DIM"
 if [ "$STREAM_DITHER" = 1 ]; then
     GSDEV=-sDEVICE=pamcmyk32
+    if [ "$RES" = "1200x600" ]; then
+	DITHER_OPTS="$DITHER_OPTS -p 2"
+	GS_RES="600x600"
+	GS_XDIM=$(expr $XDIM / 2)
+	GS_DIM="${GS_XDIM}x${YDIM}"
+	AIB=""
+    fi
     DITHER_BIN=foo2zjs-dither
     if [ -x /var/tmp/foo2zjs/foo2zjs-dither ]; then
 	DITHER_BIN=/var/tmp/foo2zjs/foo2zjs-dither
@@ -989,7 +998,7 @@ fi
 
 $PSTOPSBIN $PSTOPS_OPTS | \
 $PREFILTER | \
-$GS $PAPERSIZE -g$DIM -r$RES $GSDEV $GSOPTS \
+$GS $PAPERSIZE -g$GS_DIM -r$GS_RES $GSDEV $GSOPTS \
     -sOutputFile=- $GAMMAFILE -_ | \
 $DITHER_FILTER | \
 foo2zjs -r$RES -g$DIM -p$PAPER -m$MEDIA -n$COPIES -d$DUPLEX -s$SOURCE \
@@ -1002,7 +1011,7 @@ foo2zjs -r$RES -g$DIM -p$PAPER -m$MEDIA -n$COPIES -d$DUPLEX -s$SOURCE \
 #
 if [ -x /usr/bin/logger ]; then
     logger -t "$BASENAME" -p lpr.info -- \
-	"$GSBIN $PAPERSIZE -g$DIM -r$RES $GSDEV $GSOPTS $GAMMAFILE"
+	"$GSBIN $PAPERSIZE -g$GS_DIM -r$GS_RES $GSDEV $GSOPTS $GAMMAFILE"
     logger -t "$BASENAME" -p lpr.info -- \
 	"foo2zjs -r$RES -g$DIM -p$PAPER -m$MEDIA \
 -n$COPIES -d$DUPLEX -s$SOURCE -z$MODEL $COLOR $CLIP_UL $CLIP_LR $CLIP_LOG \
