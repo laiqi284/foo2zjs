@@ -1,97 +1,47 @@
 #!/bin/sh
 
-VERSION='$Id: foo2zjs-pstops.sh,v 1.21 2013/07/31 17:41:47 rick Exp $'
+VERSION='$Id: foo2zjs-pstops-cp1025,v 2026.11.25 Exp $'
 
 PROGNAME="$0"
 
 usage() {
 	cat <<EOF
 NAME
-    `basename $PROGNAME` - Add PS code for foo2*-wrapper
-
-SYNOPSIS
-    `basename $PROGNAME` [options] [file]
-
-DESCRIPTION
-    Add PS code for foo2zjs-wrapper.
+    `basename "$PROGNAME"` - PostScript filter for foo2zjs-wrapper (CP1025 dedicated)
 
 OPTIONS
-    -9		Use new gs (ver >= 9.00)
     -h ydimpts	For rotate -r, y dimension points
     -r		Rotate 90 clockwise
-    -a		Accurate Screens code
-    -c		CIEColor
     -n		Neuter CUPS cupsPSLevel2
-    -w		Well Tempered Screens code
-    -s		Stochastic FM Halftone code (1x1 Micro-Dots)
-    -m		Stochastic FM Halftone code (1x2 Micro-Doublets, Zero-ICM Vivid)
-    -S		Stochastic FM Halftone code (2x2 Clustered Dots, Vivid Color)
     -D lvl	Debug level
 EOF
-
 	exit 1
 }
 
-#
-#       Report an error and exit
-#
 error() {
-	echo "`basename $PROGNAME`: $1" >&2
+	echo "`basename "$PROGNAME"`: $1" >&2
 	exit 1
 }
 
-debug() {
-	if [ $DEBUG -ge $1 ]; then
-	    echo "`basename $PROGNAME`: $2" >&2
-	fi
-}
-
-#
-#	Use gsed instead of sed on Mac OSX
-#
 case `uname -s` in
-Darwin)		sed=gsed;;
-FreeBSD)	sed=gsed;;
+Darwin|FreeBSD)	sed=gsed;;
 *)		sed=sed;;
 esac
 
-#
-#       Process the options
-#
 DEBUG=0
 ROTATE90=0
-ACCURATE=0
-CIECOLOR=0
 NIXCUPS=0
-WTS=0
-STOCH=0
-STOCH12=0
-STOCH2V2=0
-STOCH_GRAIN=0
-STOCH_DIAMOND=0
-STOCH_HONEYCOMB=0
-STOCH2=0
-GSVER=old
+YDIMpoints=
 while getopts "9ach:nwsmSprgdHD:Vh?" opt
 do
 	case $opt in
-	9)	GSVER=gs9;;
-	a)	ACCURATE=1;;
-	c)	CIECOLOR=1;;
 	h)	YDIMpoints="$OPTARG";;
 	n)	NIXCUPS=1;;
 	r)	ROTATE90=1;;
-	s)	STOCH=1;;
-	m)	STOCH12=1;;
-	p)	STOCH2V2=1;;
-	g)	STOCH_GRAIN=1;;
-	d)	STOCH_DIAMOND=1;;
-	H)	STOCH_HONEYCOMB=1;;
-	S)	STOCH2=1;;
-	w)	WTS=1;;
 	D)	DEBUG="$OPTARG";;
 	V)	echo "$VERSION"; exit 0;;
-	h|\?)	usage;;
+	\?)	usage;;
+	*)	;;
 	esac
 done
 shift `expr $OPTIND - 1`
@@ -103,308 +53,17 @@ else
 fi
 
 if [ $ROTATE90 = 1 ]; then
-	    # %%currentpagedevice /PageSize get\
-	    # %%aload pop translate\
-    r="1i\
-	<< /Install {\
-	    0 $YDIMpoints translate\
-	    -90 rotate\
-	} >> setpagedevice
+    r="1i\\
+	<< /Install {\\
+	    0 $YDIMpoints translate\\
+	    -90 rotate\\
+	} >> setpagedevice\\
 	"
 else
     r=
 fi
 
-if [ "$GSVER" = "old" ]; then
-    ht='\
-        <<\
-            /AccurateScreens true\
-            /HalftoneType 1\
-            /HalftoneName (Round Dot Screen) cvn\
-            /SpotFunction { 180 mul cos exch 180 mul cos add 2 div}\
-            /Frequency 137\
-            /Angle 37\
-        >> sethalftone
-    '
-else
-    # Standard Rosette (~145 LPI, Area=17 pixels, Balanced tone and smoothness)
-    ht_145='\
-	/SpotDot { dup mul exch dup mul add 1 exch sub } def\
-	<<\
-	    /HalftoneType 5\
-	    /Cyan <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 145.521186\
-		/Angle 104.036243\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Magenta <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 145.521186\
-		/Angle 165.963757\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Yellow <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 150.0\
-		/Angle 0\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Black <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 141.421356\
-		/Angle 45\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Default <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 141.421356\
-		/Angle 45\
-		/SpotFunction /SpotDot load\
-	    >>\
-	>> /Default exch /Halftone defineresource sethalftone
-    '
-
-    # Ultra-Fine Rosette (~190 LPI, Area=10 pixels, ~40% smaller rosette flowers)
-    ht_190='\
-	/SpotDot { dup mul exch dup mul add 1 exch sub } def\
-	<<\
-	    /HalftoneType 5\
-	    /Cyan <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 189.737\
-		/Angle 108.435\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Magenta <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 189.737\
-		/Angle 161.565\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Yellow <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 200.0\
-		/Angle 0\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Black <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 212.132\
-		/Angle 45\
-		/SpotFunction /SpotDot load\
-	    >>\
-	    /Default <<\
-		/HalftoneType 1\
-		/AccurateScreens false\
-		/Frequency 212.132\
-		/Angle 45\
-		/SpotFunction /SpotDot load\
-	    >>\
-	>> /Default exch /Halftone defineresource sethalftone
-    '
-
-    # Stochastic FM Screening (Pure 1x1 Void-and-Cluster Blue Noise FM, Micro-Dots)
-    ht_stoch1='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch.ps) run } stopped {\
-		    pop (stocht.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    # Stochastic FM Screening (2x2 Clustered FM, Maximum Toner Opacity & Vivid Color)
-    ht_stoch2='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch2.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch2.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch2.ps) run } stopped {\
-		    pop (stoch2.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	{ } setblackgeneration\
-	{ } setundercolorremoval\
-	userdict /setblackgeneration { pop } bind put\
-	userdict /setundercolorremoval { pop } bind put\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    # Stochastic FM Screening (1x2 Micro-Doublets, Zero-ICM Vivid Color)
-    ht_stoch12='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch12.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch12.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch12.ps) run } stopped {\
-		    pop (stoch12.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    # Stochastic FM Screening v2 (2x2 Clustered FM, Progressive Nucleation & Anti-Dot-Gain TRC)
-    ht_stoch2v2='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch2v2.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch2v2.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch2v2.ps) run } stopped {\
-		    pop (stoch2v2.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    # Organic Seamless Stochastic FM Screening (Film Grain, Zero Mosaic)
-    ht_stoch_grain='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch_grain.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch_grain.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch_grain.ps) run } stopped {\
-		    pop (stoch_grain.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    # 45-Degree Diamond Clustered FM Screening (stoch_diamond, y=2 x=2, Full 3D, Zero Mosaic)
-    ht_stoch_diamond='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch_diamond.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch_diamond.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch_diamond.ps) run } stopped {\
-		    pop (stoch_diamond.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    # Hexagonal Honeycomb Clustered FM Screening (stoch_honeycomb, y=2 x=2, Full 3D, Zero Box Grid)
-    ht_stoch_honeycomb='\
-	<< /UseWTS false >> setuserparams\
-	{ (/usr/share/foo2zjs/crd/stoch_honeycomb.ps) run } stopped {\
-	    pop { (/var/tmp/foo2zjs/crd/stoch_honeycomb.ps) run } stopped {\
-		pop { (/tmp/foo2zjs_stoch_honeycomb.ps) run } stopped {\
-		    pop (stoch_honeycomb.ps) runlibfile\
-		} if\
-	    } if\
-	} if\
-	userdict /settransfer { pop } bind put\
-	userdict /setcolortransfer { pop pop pop pop } bind put\
-    '
-
-    if [ $STOCH_HONEYCOMB = 1 ]; then
-	ht="$ht_stoch_honeycomb"
-    elif [ $STOCH_DIAMOND = 1 ]; then
-	ht="$ht_stoch_diamond"
-    elif [ $STOCH_GRAIN = 1 ]; then
-	ht="$ht_stoch_grain"
-    elif [ $STOCH2V2 = 1 ]; then
-	ht="$ht_stoch2v2"
-    elif [ $STOCH12 = 1 ]; then
-	ht="$ht_stoch12"
-    elif [ $STOCH2 = 1 ]; then
-	ht="$ht_stoch2"
-    elif [ $STOCH = 1 ]; then
-	ht="$ht_stoch1"
-    elif [ $WTS = 1 ]; then
-	ht="$ht_190"
-    else
-	ht="$ht_145"
-    fi
-fi
-
-ensure_crd() {
-    crd_name="$1"
-    if [ ! -r "/usr/share/foo2zjs/crd/$crd_name" ] && [ ! -r "/tmp/foo2zjs_$crd_name" ]; then
-	PROGDIR=`dirname "$PROGNAME"`
-	if [ -r "$PROGDIR/crd/zjs/$crd_name" ]; then
-	    cp "$PROGDIR/crd/zjs/$crd_name" "/tmp/foo2zjs_$crd_name" 2>/dev/null
-	elif [ -r "$PROGDIR/crd/$crd_name" ]; then
-	    cp "$PROGDIR/crd/$crd_name" "/tmp/foo2zjs_$crd_name" 2>/dev/null
-	elif [ -r "/var/tmp/foo2zjs/crd/$crd_name" ]; then
-	    cp "/var/tmp/foo2zjs/crd/$crd_name" "/tmp/foo2zjs_$crd_name" 2>/dev/null
-	fi
-	chmod 666 "/tmp/foo2zjs_$crd_name" 2>/dev/null
-    fi
-}
-
-if [ $STOCH_HONEYCOMB = 1 ]; then
-    ensure_crd stoch_honeycomb.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $STOCH_DIAMOND = 1 ]; then
-    ensure_crd stoch_diamond.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $STOCH_GRAIN = 1 ]; then
-    ensure_crd stoch_grain.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $STOCH2V2 = 1 ]; then
-    ensure_crd stoch2v2.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $STOCH12 = 1 ]; then
-    ensure_crd stoch12.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $STOCH2 = 1 ]; then
-    ensure_crd stoch2.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $STOCH = 1 ]; then
-    ensure_crd stoch.ps
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	$ht
-	"
-elif [ $WTS = 1 ]; then
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	<< /UseWTS false >> setuserparams \
-	$ht
-	"
-elif [ $ACCURATE = 1 ]; then
-    w="/%%Page:[        ]*[     (]1[    )].*\$/ i\
-	<< /UseWTS false >> setuserparams \
-	$ht
-	"
-else
-    w=
-fi
-
-#
-#	Main Program
-#
 $sed \
-    -e "$w" \
     -e "$n" \
     -e "$r" \
-    $@
+    "$@"

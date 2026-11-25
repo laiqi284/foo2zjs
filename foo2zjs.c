@@ -377,6 +377,110 @@ rotate_bytes_180(unsigned char *sp, unsigned char *ep, unsigned char *mirror)
 }
 
 void
+rotate_plane_180(unsigned char *buf, int w, int bpl, int bpl16, int h, int bpp)
+{
+    static unsigned char mirror2[256];
+    static int mirror2_init = 0;
+    unsigned char *mirror;
+    int y;
+
+    if (!mirror2_init)
+    {
+	int i;
+	for (i = 0; i < 256; ++i)
+	    mirror2[i] = (unsigned char)(
+		((i & 0x03) << 6) | ((i & 0x0c) << 2) |
+		((i & 0x30) >> 2) | ((i & 0xc0) >> 6));
+	mirror2_init = 1;
+    }
+    mirror = (bpp == 2) ? mirror2 : Mirror1;
+
+    for (y = 0; y < h / 2; ++y)
+    {
+	unsigned char *r1 = buf + (size_t)y * bpl16;
+	unsigned char *r2 = buf + (size_t)(h - 1 - y) * bpl16;
+	int x;
+	for (x = 0; x < bpl; ++x)
+	{
+	    unsigned char t = mirror[r1[x]];
+	    r1[x] = mirror[r2[bpl - 1 - x]];
+	    r2[bpl - 1 - x] = t;
+	}
+	if (bpl16 > bpl)
+	{
+	    memset(r1 + bpl, 0, bpl16 - bpl);
+	    memset(r2 + bpl, 0, bpl16 - bpl);
+	}
+    }
+    if (h & 1)
+    {
+	unsigned char *mid = buf + (size_t)(h / 2) * bpl16;
+	rotate_bytes_180(mid, mid + bpl - 1, mirror);
+	if (bpl16 > bpl)
+	    memset(mid + bpl, 0, bpl16 - bpl);
+    }
+
+    int pad = (8 - (w & 7)) & 7;
+    if (pad != 0 && bpl > 0)
+    {
+	for (y = 0; y < h; ++y)
+	{
+	    unsigned char *row = buf + (size_t)y * bpl16;
+	    int x;
+	    for (x = 0; x < bpl; ++x)
+	    {
+		unsigned char next = (x + 1 < bpl) ? (row[x + 1] >> (8 - pad)) : 0;
+		row[x] = (unsigned char)((row[x] << pad) | next);
+	    }
+	    row[bpl - 1] &= (unsigned char)(0xFFu << pad);
+	}
+    }
+}
+
+int
+infer_paper_code(int w600, int h600, int fallback)
+{
+    static const struct { int code, w, h; } table[] = {
+	{ 9,   4960, 7016 }, /* A4 */
+	{ 1,   5100, 6600 }, /* Letter */
+	{ 5,   5100, 8400 }, /* Legal */
+	{ 7,   4350, 6300 }, /* Executive */
+	{ 11,  3496, 4960 }, /* A5 */
+	{ 13,  4299, 6070 }, /* B5 */
+	{ 70,  2478, 3498 }, /* A6 */
+	{ 268, 2400, 3600 }, /* Photo4x6 */
+	{ 269, 3000, 4800 }, /* Photo5x8 */
+	{ 270, 2362, 3543 }, /* Photo10x15 */
+	{ 20,  2475, 5700 }, /* Env10 */
+	{ 27,  2600, 5200 }, /* EnvDL */
+	{ 28,  3825, 5408 }, /* EnvC5 */
+	{ 34,  4158, 5892 }, /* EnvB5 */
+	{ 37,  2325, 4500 }, /* EnvMonarch */
+	{ 263, 4346, 6142 }, /* 16k184x260 */
+	{ 264, 4606, 6378 }, /* 16k195x270 */
+	{ 257, 4653, 6448 }, /* 16k197x273 */
+	{ 43,  2364, 3498 }, /* Postcard */
+	{ 82,  3498, 4722 }, /* DoublePostcard */
+	{ 258, 5100, 7800 }, /* FanfoldGermanLegal */
+    };
+    int best_code = fallback;
+    int best_dist = 1000000;
+    size_t i;
+
+    for (i = 0; i < sizeof(table) / sizeof(table[0]); ++i)
+    {
+	int dw = abs(w600 - table[i].w);
+	int dh = abs(h600 - table[i].h);
+	if (dw <= 45 && dh <= 45 && (dw + dh) < best_dist)
+	{
+	    best_dist = dw + dh;
+	    best_code = table[i].code;
+	}
+    }
+    return best_code;
+}
+
+void
 debug(int level, char *fmt, ...)
 {
     va_list ap;
@@ -1454,19 +1558,32 @@ pksm_pages(FILE *ifp, FILE *ofp)
     int			rc;
     int			p4eaten = 1;
 
+    int			origUpperLeftX = UpperLeftX;
+    int			origLowerRightX = LowerRightX;
+    int			origUpperLeftY = UpperLeftY;
+    int			origLowerRightY = LowerRightY;
+    int			origPaperCode = PaperCode;
+
     //
     // Save the original Upper Right clip values as the logical offset,
     // because we may adjust them slightly below, in the interest of speed.
     //
     if (LogicalClip & LOGICAL_CLIP_X)
-	LogicalOffsetX = UpperLeftX;
+	LogicalOffsetX = origUpperLeftX & ~7;
     if (LogicalClip & LOGICAL_CLIP_Y)
-	LogicalOffsetY = UpperLeftY;
+	LogicalOffsetY = origUpperLeftY;
 
     for (;;)
     {
 	++PageNum;
 	AnyColor = 0;
+
+	UpperLeftX = origUpperLeftX;
+	LowerRightX = origLowerRightX;
+	UpperLeftY = origUpperLeftY;
+	LowerRightY = origLowerRightY;
+	LowerRightX += UpperLeftX & 7;
+	UpperLeftX &= ~7;
 
 	for (i = 0; i < 4; ++i)
 	{
@@ -1482,6 +1599,15 @@ pksm_pages(FILE *ifp, FILE *ofp)
 	    {
 		saveW = rawW;
 		saveH = rawH;
+		if (rawW <= UpperLeftX + LowerRightX)
+		    UpperLeftX = LowerRightX = 0;
+		if (rawH <= UpperLeftY + LowerRightY)
+		    UpperLeftY = LowerRightY = 0;
+		PageWidth = rawW;
+		PageHeight = rawH;
+		PaperCode = (Model == MODEL_HP_PRO_CP)
+			? infer_paper_code(rawW / Bpp, rawH, origPaperCode)
+			: origPaperCode;
 	    }
 	    if (saveW != rawW)
 		error(1, "Image width changed from %d to %d on plane %d\n",
@@ -1491,12 +1617,6 @@ pksm_pages(FILE *ifp, FILE *ofp)
 			saveH, rawH, i);
 
 	    rawBpl = (rawW + 7) / 8;
-
-	    // We only clip multiples of 8 pixels off the leading edge, and
-	    // add any remainder to the amount we clip from the right edge.
-	    // Its fast, and good enough for government work.
-	    LowerRightX += UpperLeftX & 7;
-	    UpperLeftX &= ~7;
 
 	    w = rawW - UpperLeftX - LowerRightX;
 	    h = rawH - UpperLeftY - LowerRightY;
@@ -1510,7 +1630,7 @@ pksm_pages(FILE *ifp, FILE *ofp)
 		bpl16 = bpl;
 	    debug(1, "bpl=%d bpl16=%d\n", bpl, bpl16);
 
-	    plane[i] = malloc(bpl16 * h);
+	    plane[i] = calloc(bpl16, h);
 	    if (!plane[i])
 		error(1, "Can't allocate plane buffer\n");
 
@@ -1546,10 +1666,9 @@ pksm_pages(FILE *ifp, FILE *ofp)
 		    }
 	    }
 
-	    if (Duplex == DMDUPLEX_LONGEDGE && even_page(PageNum))
-		rotate_bytes_180(plane[i], plane[i] + bpl * h - 1, Mirror1);
-	    if (Duplex == DMDUPLEX_MANUALLONG && even_page(PageNum))
-		rotate_bytes_180(plane[i], plane[i] + bpl * h - 1, Mirror1);
+	    if ((Duplex == DMDUPLEX_LONGEDGE || Duplex == DMDUPLEX_MANUALLONG)
+		    && even_page(PageNum))
+		rotate_plane_180(plane[i], w, bpl, bpl16, h, Bpp);
 	}
 
 	debug(2, "AnyColor = %s %s %s\n",
@@ -1618,27 +1737,43 @@ pbm_pages(FILE *ifp, FILE *ofp)
     FILE		*tfp = NULL;
     long		tpos = 0;
 
+    int			origUpperLeftX = UpperLeftX;
+    int			origLowerRightX = LowerRightX;
+    int			origUpperLeftY = UpperLeftY;
+    int			origLowerRightY = LowerRightY;
+    int			origPaperCode = PaperCode;
+
     //
     // Save the original Upper Right clip values as the logical offset,
     // because we may adjust them slightly below, in the interest of speed.
     //
     if (LogicalClip & LOGICAL_CLIP_X)
-	LogicalOffsetX = UpperLeftX;
+	LogicalOffsetX = origUpperLeftX & ~7;
     if (LogicalClip & LOGICAL_CLIP_Y)
-	LogicalOffsetY = UpperLeftY;
+	LogicalOffsetY = origUpperLeftY;
 
     for (;;)
     {
 	if (pbm_header(ifp, &p4eaten, &rawW, &rawH) == 0)
 	    break;
 
-	rawBpl = (rawW + 7) / 8;
-
-	// We only clip multiples of 8 pixels off the leading edge, and
-	// add any remainder to the amount we clip from the right edge.
-	// Its fast, and good enough for government work.
+	UpperLeftX = origUpperLeftX;
+	LowerRightX = origLowerRightX;
+	UpperLeftY = origUpperLeftY;
+	LowerRightY = origLowerRightY;
 	LowerRightX += UpperLeftX & 7;
 	UpperLeftX &= ~7;
+	if (rawW <= UpperLeftX + LowerRightX)
+	    UpperLeftX = LowerRightX = 0;
+	if (rawH <= UpperLeftY + LowerRightY)
+	    UpperLeftY = LowerRightY = 0;
+	PageWidth = rawW;
+	PageHeight = rawH;
+	PaperCode = (Model == MODEL_HP_PRO_CP)
+		? infer_paper_code(rawW / Bpp, rawH, origPaperCode)
+		: origPaperCode;
+
+	rawBpl = (rawW + 7) / 8;
 
 	w = rawW - UpperLeftX - LowerRightX;
 	h = rawH - UpperLeftY - LowerRightY;
@@ -1654,7 +1789,7 @@ pbm_pages(FILE *ifp, FILE *ofp)
 	default:		error(1, "Bad model %d\n", Model); break;
 	}
 
-	buf = malloc(bpl16 * h);
+	buf = calloc(bpl16, h);
 	if (!buf)
 	    error(1, "Can't allocate page buffer\n");
 
@@ -1664,12 +1799,12 @@ pbm_pages(FILE *ifp, FILE *ofp)
 
 	++PageNum;
 	if (Duplex == DMDUPLEX_LONGEDGE && even_page(PageNum))
-	    rotate_bytes_180(buf, buf + bpl16 * h - 1, Mirror1);
+	    rotate_plane_180(buf, w, bpl, bpl16, h, Bpp);
 
 	if (even_page(PageNum) && EvenPages)
 	{
 	    if (Duplex == DMDUPLEX_MANUALLONG)
-		rotate_bytes_180(buf, buf + bpl16 * h - 1, Mirror1);
+		rotate_plane_180(buf, w, bpl, bpl16, h, Bpp);
 	    SeekRec[SeekIndex].b = ftell(EvenPages);
 	    pbm_page(buf, w, h, EvenPages);
 	    SeekRec[SeekIndex].e = ftell(EvenPages);

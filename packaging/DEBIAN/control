@@ -1,0 +1,18 @@
+Package: printer-driver-foo2zjs-cp1025
+Version: @VERSION@
+Section: text
+Priority: optional
+Architecture: @ARCH@
+Maintainer: Local Print Maintainer <root@localhost>
+Depends: libc6 (>= 2.34), cups-filters | foomatic-filters, ghostscript (>= 9.0), dc, gawk | mawk
+Recommends: cups, cups-client
+Provides: printer-driver-foo2zjs
+Conflicts: printer-driver-foo2zjs, printer-driver-foo2zjs-common
+Replaces: printer-driver-foo2zjs, printer-driver-foo2zjs-common
+Description: Dedicated HP LaserJet Pro CP1025/CP1025nw ZjStream driver
+ Specialized foo2zjs printer driver for HP LaserJet Pro CP1025 / CP1025nw:
+  - 1200x600 dpi 3-level hardware PWM {00, 10, 11} with CIE L* self-calibrated LUT
+  - 600x600 dpi 1x1 micro-dot error diffusion (color and monochrome)
+  - Pure-K neutral-axis GCR CMYK ICC profile for sRGB/GTK/browser printing
+  - Manual long-edge and short-edge duplex printing
+  - Self-describing per-page geometry to prevent non-A4 network paper tearing

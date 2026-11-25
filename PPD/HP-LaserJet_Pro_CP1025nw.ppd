@@ -87,7 +87,7 @@
 *ParamCustomPageSize HeightOffset: 5 points 0 0
 
 *FoomaticIDs: HP-LaserJet_Pro_CP1025nw foo2zjs-z3
-*FoomaticRIPCommandLine: "/var/tmp/foo2zjs/foo2zjs-wrapper -z3 -P -L0 %A"
+*FoomaticRIPCommandLine: "foo2zjs-wrapper -z3 -P -L0 %A"
 
 *OpenGroup: General/General
 
@@ -104,8 +104,8 @@
 *OpenUI *ColorMode/Color Mode: PickOne
 *FoomaticRIPOption ColorMode: enum CmdLine A
 *OrderDependency: 120 AnySetup *ColorMode
-*DefaultColorMode: Monochrome
-*ColorMode ICM/Color - use ICM color profile: "%% FoomaticRIPOptionSetting: ColorMode=ICM"
+*DefaultColorMode: ICM
+*ColorMode ICM/Color (Pure-K Gray, Calibrated): "%% FoomaticRIPOptionSetting: ColorMode=ICM"
 *FoomaticRIPOptionSetting ColorMode=ICM: "-c -C10 "
 *ColorMode Monochrome/Monochrome: "%% FoomaticRIPOptionSetting: ColorMode=Monochrome"
 *FoomaticRIPOptionSetting ColorMode=Monochrome: " "
@@ -124,7 +124,7 @@
 *OpenUI *PageSize/Page Size: PickOne
 *FoomaticRIPOption PageSize: enum CmdLine A
 *OrderDependency: 135 AnySetup *PageSize
-*DefaultPageSize: Letter
+*DefaultPageSize: A4
 *PageSize Letter/Letter: "%% FoomaticRIPOptionSetting: PageSize=Letter"
 *FoomaticRIPOptionSetting PageSize=Letter: "-p1 "
 *PageSize A4/A4: "%% FoomaticRIPOptionSetting: PageSize=A4"
@@ -171,7 +171,7 @@
 
 *OpenUI *PageRegion: PickOne
 *OrderDependency: 135 AnySetup *PageRegion
-*DefaultPageRegion: Letter
+*DefaultPageRegion: A4
 *PageRegion Letter/Letter: "%% FoomaticRIPOptionSetting: PageSize=Letter"
 *PageRegion A4/A4: "%% FoomaticRIPOptionSetting: PageSize=A4"
 *PageRegion Photo4x6/Photo Size 4x6 in: "%% FoomaticRIPOptionSetting: PageSize=Photo4x6"
@@ -195,7 +195,7 @@
 *PageRegion w558h774/16k 197x273 mm: "%% FoomaticRIPOptionSetting: PageSize=w558h774"
 *CloseUI: *PageRegion
 
-*DefaultImageableArea: Letter
+*DefaultImageableArea: A4
 *ImageableArea Letter/Letter: "11.34 11.34 600.66 780.66"
 *ImageableArea A4/A4: "11.34 11.34 583.66 830.66"
 *ImageableArea Photo4x6/Photo Size 4x6 in: "11.34 11.34 276.66 420.66"
@@ -218,7 +218,7 @@
 *ImageableArea w553h765/16k 195x270 mm: "11.34 11.34 541.66 753.66"
 *ImageableArea w558h774/16k 197x273 mm: "11.34 11.34 546.66 762.66"
 
-*DefaultPaperDimension: Letter
+*DefaultPaperDimension: A4
 *PaperDimension Letter/Letter: "612 792"
 *PaperDimension A4/A4: "595 842"
 *PaperDimension Photo4x6/Photo Size 4x6 in: "288 432"
@@ -428,16 +428,6 @@
 
 *OpenGroup: Adjustment/Adjustment
 
-*OpenUI *halftone/Halftone Screens: PickOne
-*FoomaticRIPOption halftone: enum CmdLine A
-*OrderDependency: 110 AnySetup *halftone
-*Defaulthalftone: micro
-*halftone micro/仿制 1x1 微点 (HP Official-Style 1x1 Micro-Dots, Pure K, Calibrated): "%% FoomaticRIPOptionSetting: halftone=micro"
-*FoomaticRIPOptionSetting halftone=micro: " -qmicro  "
-*halftone stoch2/经典 2x2 聚簇挂网 (Stochastic 2x2 Clustered, Vivid): "%% FoomaticRIPOptionSetting: halftone=stoch2"
-*FoomaticRIPOptionSetting halftone=stoch2: " -qstoch2  "
-*CloseUI: *halftone
-
 *OpenUI *Density/Print Density: PickOne
 *FoomaticRIPOption Density: enum CmdLine A
 *OrderDependency: 150 AnySetup *Density
@@ -453,40 +443,6 @@
 *Density Density5/Extra Dark (5): "%% FoomaticRIPOptionSetting: Density=Density5"
 *FoomaticRIPOptionSetting Density=Density5: "-T5 "
 *CloseUI: *Density
-
-*OpenUI *ICM/ICM Color Profile: PickOne
-*FoomaticRIPOption ICM: enum CmdLine A
-*OrderDependency: 300 AnySetup *ICM
-*DefaultICM: none
-*ICM none/No ICM color correction (Pure Raw CMYK): "%% FoomaticRIPOptionSetting: ICM=none"
-*FoomaticRIPOptionSetting ICM=none: "-Gnone.icm "
-*ICM cp1025/Calibrated Color Profile: "%% FoomaticRIPOptionSetting: ICM=cp1025"
-*FoomaticRIPOptionSetting ICM=cp1025: "-Ghp-cp1025-cmyk.icc "
-*ICM testing/File testing.icm: "%% FoomaticRIPOptionSetting: ICM=testing"
-*FoomaticRIPOptionSetting ICM=testing: "-Gtesting.icm "
-*ICM user1/File user1.icm: "%% FoomaticRIPOptionSetting: ICM=user1"
-*FoomaticRIPOptionSetting ICM=user1: "-Guser1.icm "
-*ICM user2/File user2.icm: "%% FoomaticRIPOptionSetting: ICM=user2"
-*FoomaticRIPOptionSetting ICM=user2: "-Guser2.icm "
-*ICM user3/File user3.icm: "%% FoomaticRIPOptionSetting: ICM=user3"
-*FoomaticRIPOptionSetting ICM=user3: "-Guser3.icm "
-*ICM user4/File user4.icm: "%% FoomaticRIPOptionSetting: ICM=user4"
-*FoomaticRIPOptionSetting ICM=user4: "-Guser4.icm "
-*CloseUI: *ICM
-
-*OpenUI *Intent/ICM Color Profile Intent: PickOne
-*FoomaticRIPOption Intent: enum CmdLine A
-*OrderDependency: 310 AnySetup *Intent
-*DefaultIntent: Perceptual
-*Intent Absolute/Absolute Intent: "%% FoomaticRIPOptionSetting: Intent=Absolute"
-*FoomaticRIPOptionSetting Intent=Absolute: "-I3 "
-*Intent Colorimetric/Colorimetric Intent: "%% FoomaticRIPOptionSetting: Intent=Colorimetric"
-*FoomaticRIPOptionSetting Intent=Colorimetric: "-I1 "
-*Intent Perceptual/Perceptual Intent: "%% FoomaticRIPOptionSetting: Intent=Perceptual"
-*FoomaticRIPOptionSetting Intent=Perceptual: "-I0 "
-*Intent Saturation/Saturation Intent: "%% FoomaticRIPOptionSetting: Intent=Saturation"
-*FoomaticRIPOptionSetting Intent=Saturation: "-I2 "
-*CloseUI: *Intent
 
 *CloseGroup: Adjustment
 
