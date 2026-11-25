@@ -477,17 +477,255 @@ int process_pam_page_split(FILE *in, FILE *out, int width, int height) {
     return rc2;
 }
 
+// Read next ASCII decimal integer from a PNM (P5 PGM) header, skipping comments and a single trailing whitespace
+static int read_pnm_int(FILE *in) {
+    int c;
+    while ((c = fgetc(in)) != EOF) {
+        if (c == '#') {
+            while ((c = fgetc(in)) != EOF && c != '\n') {}
+        } else if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+            continue;
+        } else {
+            break;
+        }
+    }
+    if (c < '0' || c > '9') return -1;
+    int val = 0;
+    while (c >= '0' && c <= '9') {
+        val = val * 10 + (c - '0');
+        c = fgetc(in);
+    }
+    if (c != EOF && c != ' ' && c != '\t' && c != '\r' && c != '\n') {
+        ungetc(c, in);
+    }
+    return val;
+}
+
+// Monochrome 600x600 1-bit (P5 PGM -> P4 PBM) using tuned K-channel LUT and 5-22% highlight blending
+int process_pgm_page_1x1(FILE *in, FILE *out, int width, int height) {
+    int bpl = (width + 7) / 8;
+    unsigned char *row = malloc((size_t)width);
+    unsigned char *dot_row = malloc((size_t)width);
+    unsigned char *out_row = malloc((size_t)bpl);
+    if (!row || !dot_row || !out_row) {
+        fprintf(stderr, "foo2zjs-dither: Memory allocation error\n");
+        free(row); free(dot_row); free(out_row);
+        return -1;
+    }
+
+    int *err_curr = calloc((size_t)width + 3, sizeof(int));
+    int *err_next = calloc((size_t)width + 3, sizeof(int));
+    if (!err_curr || !err_next) {
+        fprintf(stderr, "foo2zjs-dither: Memory allocation error for error buffers\n");
+        free(err_curr); free(err_next);
+        free(row); free(dot_row); free(out_row);
+        return -1;
+    }
+
+    fprintf(out, "P4\n%d %d\n", width, height);
+    unsigned int rng = 123456789u;
+
+    for (int y = 0; y < height; y++) {
+        if (fread(row, 1, (size_t)width, in) != (size_t)width) break;
+        memset(dot_row, 0, (size_t)width);
+        memset(out_row, 0, (size_t)bpl);
+
+        int forward = (y % 2 == 0);
+        int start_x = forward ? 0 : (width - 1);
+        int end_x = forward ? width : -1;
+        int step_x = forward ? 1 : -1;
+
+        for (int x = start_x; x != end_x; x += step_x) {
+            int k_in = 255 - (int)row[x];
+            int v = gamma_lut_1x1[3][k_in];
+            int total = (v << 4) + err_curr[x + 1];
+
+            rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+            int jitter = (int)((rng % 71) - 35) << 4;
+            int th = 2048 + jitter;
+
+            int target = 0;
+            if (dot_row[x]) {
+                target = 0;
+            } else if (total >= th) {
+                dot_row[x] = 1;
+                int x_next = x + step_x;
+                int pair_prob = 0;
+                if (v <= 22) {
+                    pair_prob = 75;
+                } else if (v < 80) {
+                    pair_prob = (75 * (80 - v)) / 58;
+                }
+                rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+                if (pair_prob > 0 && ((int)(rng % 100) < pair_prob) &&
+                    x_next >= 0 && x_next < width && !dot_row[x_next]) {
+                    dot_row[x_next] = 1;
+                    target = (255 << 4) * 2;
+                } else {
+                    target = 255 << 4;
+                }
+            }
+            int err = total - target;
+
+            if (forward) {
+                err_curr[x + 2] += (err * 7) / 16;
+                err_next[x + 0] += (err * 3) / 16;
+                err_next[x + 1] += (err * 5) / 16;
+                err_next[x + 2] += (err * 1) / 16;
+            } else {
+                err_curr[x + 0] += (err * 7) / 16;
+                err_next[x + 2] += (err * 3) / 16;
+                err_next[x + 1] += (err * 5) / 16;
+                err_next[x + 0] += (err * 1) / 16;
+            }
+        }
+
+        for (int x = 0; x < width; x++) {
+            if (dot_row[x]) {
+                out_row[x >> 3] |= (unsigned char)(0x80 >> (x & 7));
+            }
+        }
+        if (fwrite(out_row, 1, (size_t)bpl, out) != (size_t)bpl) break;
+
+        memset(err_curr, 0, ((size_t)width + 3) * sizeof(int));
+        int *tmp = err_curr; err_curr = err_next; err_next = tmp;
+    }
+
+    free(err_curr); free(err_next);
+    free(row); free(dot_row); free(out_row);
+    return 0;
+}
+
+// Monochrome 1200x600 3-Level {00, 10, 11} Hardware PWM (P5 PGM -> P4 2-bit-packed PBM)
+int process_pgm_page_pwm2(FILE *in, FILE *out, int width, int height) {
+    int bpl = (width * 2 + 7) / 8;
+    unsigned char *row = malloc((size_t)width);
+    unsigned char *code_row = malloc((size_t)width);
+    unsigned char *out_row = malloc((size_t)bpl);
+    if (!row || !code_row || !out_row) {
+        fprintf(stderr, "foo2zjs-dither: Memory allocation error\n");
+        free(row); free(code_row); free(out_row);
+        return -1;
+    }
+
+    int *err_curr = calloc((size_t)width + 3, sizeof(int));
+    int *err_next = calloc((size_t)width + 3, sizeof(int));
+    if (!err_curr || !err_next) {
+        fprintf(stderr, "foo2zjs-dither: Memory allocation error for error buffers\n");
+        free(err_curr); free(err_next);
+        free(row); free(code_row); free(out_row);
+        return -1;
+    }
+
+    fprintf(out, "P4\n%d %d\n", width * 2, height);
+    const int lvl_mid = 192 << 4;
+    const int lvl_full = 255 << 4;
+    unsigned int rng = 123456789u;
+
+    for (int y = 0; y < height; y++) {
+        if (fread(row, 1, (size_t)width, in) != (size_t)width) break;
+        memset(code_row, 0, (size_t)width);
+        memset(out_row, 0, (size_t)bpl);
+
+        int forward = (y % 2 == 0);
+        int start_x = forward ? 0 : (width - 1);
+        int end_x = forward ? width : -1;
+        int step_x = forward ? 1 : -1;
+
+        for (int x = start_x; x != end_x; x += step_x) {
+            int k_in = 255 - (int)row[x];
+            int v = gamma_lut_1x1[3][k_in];
+            int total = (v << 4) + err_curr[x + 1];
+
+            rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+            int jitter1 = (int)((rng % 49) - 24) << 4;
+            int th1 = (96 << 4) + jitter1;
+
+            rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+            int jitter2 = (int)((rng % 33) - 16) << 4;
+            int th2 = (224 << 4) + jitter2;
+
+            int target = 0;
+            if (code_row[x] != 0) {
+                target = 0;
+            } else if (total >= th2) {
+                code_row[x] = 3;
+                target = lvl_full;
+            } else if (total >= th1) {
+                code_row[x] = 2;
+                int x_next = x + step_x;
+                int pair_prob = 0;
+                if (v <= 24) {
+                    pair_prob = 65;
+                } else if (v < 72) {
+                    pair_prob = (65 * (72 - v)) / 48;
+                }
+                rng = (1103515245u * rng + 12345u) & 0x7fffffffu;
+                if (pair_prob > 0 && ((int)(rng % 100) < pair_prob) &&
+                    x_next >= 0 && x_next < width && code_row[x_next] == 0) {
+                    code_row[x_next] = 2;
+                    target = lvl_mid * 2;
+                } else {
+                    target = lvl_mid;
+                }
+            }
+            int err = total - target;
+
+            if (forward) {
+                err_curr[x + 2] += (err * 7) / 16;
+                err_next[x + 0] += (err * 3) / 16;
+                err_next[x + 1] += (err * 5) / 16;
+                err_next[x + 2] += (err * 1) / 16;
+            } else {
+                err_curr[x + 0] += (err * 7) / 16;
+                err_next[x + 2] += (err * 3) / 16;
+                err_next[x + 1] += (err * 5) / 16;
+                err_next[x + 0] += (err * 1) / 16;
+            }
+        }
+
+        for (int x = 0; x < width; x++) {
+            unsigned char code = code_row[x];
+            if (code != 0) {
+                out_row[x >> 2] |= (unsigned char)(code << (6 - 2 * (x & 3)));
+            }
+        }
+        if (fwrite(out_row, 1, (size_t)bpl, out) != (size_t)bpl) break;
+
+        memset(err_curr, 0, ((size_t)width + 3) * sizeof(int));
+        int *tmp = err_curr; err_curr = err_next; err_next = tmp;
+    }
+
+    free(err_curr); free(err_next);
+    free(row); free(code_row); free(out_row);
+    return 0;
+}
+
 int process_pam_page(FILE *in, FILE *out) {
     char line[256];
     int width = 0, height = 0, depth = 0, maxval = 0;
 
-    // Read P7 PAM header
+    // Read P7 PAM or P5 PGM header
     if (!fgets(line, sizeof(line), in)) return EOF;
     while (line[0] == '\n' || line[0] == '\r' || line[0] == ' ' || line[0] == '\t') {
         if (!fgets(line, sizeof(line), in)) return EOF;
     }
+    if (strncmp(line, "P5", 2) == 0) {
+        int n = sscanf(line + 2, "%d %d %d", &width, &height, &maxval);
+        if (n < 1) width = read_pnm_int(in);
+        if (n < 2) height = read_pnm_int(in);
+        if (n < 3) maxval = read_pnm_int(in);
+        if (width <= 0 || height <= 0 || maxval != 255) {
+            fprintf(stderr, "foo2zjs-dither: Invalid PGM geometry: %dx%d maxval=%d\n", width, height, maxval);
+            return -1;
+        }
+        if (pwm_bpp == 2) {
+            return process_pgm_page_pwm2(in, out, width, height);
+        }
+        return process_pgm_page_1x1(in, out, width, height);
+    }
     if (strncmp(line, "P7", 2) != 0) {
-        fprintf(stderr, "foo2zjs-dither: Not a P7 PAM header: %s\n", line);
+        fprintf(stderr, "foo2zjs-dither: Not a P7 PAM or P5 PGM header: %s\n", line);
         return -1;
     }
 

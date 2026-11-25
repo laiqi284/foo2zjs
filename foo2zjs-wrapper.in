@@ -926,7 +926,7 @@ esac
 
 STREAM_DITHER=0
 DITHER_OPTS=""
-if [ "$COLOR" != "" -a \( "$QUALITY" = micro -o "$QUALITY" = 1x1 -o "$QUALITY" = hp1x1 -o "$QUALITY" = "" \) ]; then
+if [ "$QUALITY" = micro -o "$QUALITY" = 1x1 -o "$QUALITY" = hp1x1 -o "$QUALITY" = "" ]; then
     STREAM_DITHER=1
     DITHER_OPTS="-m 1"
 elif [ "$COLOR" != "" -a \( "$QUALITY" = stoch2 -o "$QUALITY" = 2x2 \) ]; then
@@ -940,7 +940,11 @@ fi
 GS_RES="$RES"
 GS_DIM="$DIM"
 if [ "$STREAM_DITHER" = 1 ]; then
-    GSDEV=-sDEVICE=pamcmyk32
+    if [ "$COLOR" != "" ]; then
+	GSDEV=-sDEVICE=pamcmyk32
+    else
+	GSDEV=-sDEVICE=pgmraw
+    fi
     if [ "$RES" = "1200x600" ]; then
 	DITHER_OPTS="$DITHER_OPTS -p 2"
 	GS_RES="600x600"
