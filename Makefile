@@ -1,4 +1,4 @@
-VERSION = 2026.11.25-1
+VERSION = 2026.11.27-1
 PREFIX ?= /usr
 DESTDIR ?=
 ARCH := $(shell dpkg --print-architecture 2>/dev/null || uname -m)

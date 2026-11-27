@@ -25,7 +25,7 @@
 #include "embedded_lut_pwm2.h"
 
 static unsigned char gamma_lut_1x1[4][256];
-static int clean_black = 1;
+static int clean_black = 0;
 static int dither_mode = 1;
 static int pwm_bpp = 1;     /* 1: 600x600 1-bit, 2: 1200x600 2-bit {00,10,11} PWM */
 
@@ -651,7 +651,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Usage: %s [-m 1] [-p 1|2] [-B 0|1] [-l lut_file|none] [-g gamma|gc,gm,gy,gk]\n", argv[0]);
                 fprintf(stderr, "  -m 1: 1x1 Micro-Dots (CP1025 dedicated, default)\n");
                 fprintf(stderr, "  -p 1|2: 1=600x600 1-bit (default), 2=1200x600 2-bit {00,10,11} PWM\n");
-                fprintf(stderr, "  -B 1: Pure Black enforcement (BlackClears, default)\n");
+                fprintf(stderr, "  -B 0|1: Pure Black enforcement (BlackClears, default 0)\n");
                 fprintf(stderr, "  -l file: CMYK LUT file (or 'none' for built-in calibrated LUT)\n");
                 return 0;
         }

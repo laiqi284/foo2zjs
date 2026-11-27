@@ -13,7 +13,7 @@ Specialized, lightweight `foo2zjs` driver build tailored exclusively for **HP La
 ## Install `.deb` on Ubuntu Server 26.04
 
 ```bash
-sudo apt install ./printer-driver-foo2zjs-cp1025_2026.11.25-1_amd64.deb
+sudo apt install ./printer-driver-foo2zjs-cp1025_*.deb
 sudo lpadmin -p HP_LaserJet_CP_1025 -P /usr/share/ppd/foo2zjs/HP-LaserJet_Pro_CP1025nw.ppd.gz -E
 ```
 
